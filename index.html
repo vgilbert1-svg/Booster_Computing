@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Booster Classes · Grades 6–8</title>
+<title>Booster Computing · Grades 6–8</title>
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
 <style>
   :root{--ink:#15202b;--muted:#5d6876;--bg:#f5f6f2;--line:#e2e5e9}
@@ -29,7 +29,7 @@
 <body>
 <div class="wrap">
   <div class="kicker">Booster Programme</div>
-  <h1>Booster Classes · Grades 6–8</h1>
+  <h1>Booster Computing · Grades 6–8</h1>
   <p>IGCSE-aligned lessons with videos, clear topic breakdowns and Vietnamese translation. Target: 85% or higher.</p>
 
   <div class="grades">
@@ -37,12 +37,13 @@
     <a class="g" style="background:#4338ca" data-page="grade" data-grade="7"><div class="n">7</div><div class="l">Grade 7 Booster</div><div class="s">Open the Grade 7 page</div></a>
     <a class="g" style="background:#c2410c" data-page="grade" data-grade="8"><div class="n">8</div><div class="l">Grade 8 Booster</div><div class="s">Open the Grade 8 page</div></a>
   </div>
-  <a class="teacher" data-page="teacher">Teacher portal</a>
+  <a class="teacher" data-page="home" style="background:#0f766e;margin-right:8px">Register / sign in</a>
+  <a class="teacher" data-page="teacher">Teacher &amp; admin portal</a>
 
   <div id="setupWarn" class="warn" hidden>
     The app link is not set yet. Edit <code>index.html</code> and paste your Apps Script web app URL (ending in <code>/exec</code>) into <code>APP_URL</code>.
   </div>
-  <div class="note">Sign in with your <b>school Google account</b>. Students are taken to their own registered grade.</div>
+  <div class="note">Sign in with your <b>school Google account</b>. New here? Use the button below to register — your teacher or the administrator will approve your access.</div>
 </div>
 
 <script>
@@ -53,7 +54,7 @@
   var ready = /^https:\/\/script\.google\.com\/.+\/exec$/.test(APP_URL.trim());
   document.querySelectorAll('[data-page]').forEach(function (a) {
     if (!ready) { a.href = '#'; a.addEventListener('click', function (e) { e.preventDefault(); }); return; }
-    var q = a.dataset.page === 'teacher' ? '?page=teacher' : '?page=grade&grade=' + a.dataset.grade;
+    var q = a.dataset.page === 'home' ? '' : a.dataset.page === 'teacher' ? '?page=portal' : '?page=grade&grade=' + a.dataset.grade;
     a.href = APP_URL.trim() + q;
   });
   if (!ready) document.getElementById('setupWarn').hidden = false;

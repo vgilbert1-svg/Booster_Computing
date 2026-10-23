@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<?!= include('Styles') ?>
+<style>
+body{--accent:#1f4e79;--accent-soft:#e4edf6;--accent-ink:#173b5c}
+body.admin{--accent:#7c2d12;--accent-soft:#fbeee6;--accent-ink:#5c210d}
+.tabs{display:flex;gap:4px;overflow-x:auto;padding-top:14px;padding-bottom:2px;border-bottom:1px solid var(--line)}
+.tab{border:0;background:transparent;font:600 .93rem var(--head);color:var(--muted);padding:10px 14px;border-radius:9px 9px 0 0;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;position:relative}
+.tab:hover{color:var(--ink)}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+.tab .cnt{display:inline-block;min-width:20px;padding:0 6px;border-radius:999px;background:var(--bad);color:#fff;font-size:.72rem;margin-left:6px;line-height:20px;text-align:center}
+main{padding-top:20px;padding-bottom:60px}
+.two{display:grid;grid-template-columns:380px 1fr;gap:16px;align-items:start}
+.two.wide{grid-template-columns:330px 1fr}
+.stats{grid-template-columns:repeat(4,1fr);margin-bottom:16px}
+.toolbar{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px}
+.toolbar>div{min-width:170px}
+.toolbar label{margin-top:0}
+.actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{border:0;background:#fff;font:600 .8rem var(--head);padding:7px 10px;cursor:pointer;color:var(--muted);border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button.on[data-v=Present]{background:var(--ok);color:#fff}
+.seg button.on[data-v=Late]{background:var(--warn);color:#fff}
+.seg button.on[data-v=Absent]{background:var(--bad);color:#fff}
+.seg button.on[data-v=Excused]{background:#64748b;color:#fff}
+.topic-li{display:flex;gap:10px;align-items:center;width:100%;text-align:left;background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin-bottom:6px;cursor:pointer;font:500 .93rem var(--body)}
+.topic-li:hover{border-color:var(--accent)}
+.topic-li.on{border-color:var(--accent);background:var(--accent-soft)}
+.unit-h{font:600 .76rem var(--head);text-transform:uppercase;letter-spacing:.05em;color:var(--accent);margin:14px 2px 6px}
+.hint{font-size:.8rem;color:var(--muted);margin-top:4px}
+.qedit{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:10px 0;background:var(--soft)}
+.qedit .row>*{min-width:120px}
+.qhead{display:flex;justify-content:space-between;align-items:center;font:600 .85rem var(--head);color:var(--muted)}
+.section-title{font:600 .78rem var(--head);text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin:22px 0 2px;padding-top:16px;border-top:1px solid var(--line)}
+.req{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px;background:#fff}
+.req-top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.req .msg{background:var(--soft);border-radius:8px;padding:6px 10px;font-size:.9rem;margin:8px 0}
+.req select{width:auto;min-width:180px;padding:7px 10px;font-size:.9rem}
+.feed-item{border-bottom:1px solid var(--line);padding:12px 0}
+.feed-item:last-child{border-bottom:0}
+.feed-text{white-space:pre-wrap;font-size:.94rem;max-height:7.5em;overflow:hidden}
+details.cw{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fff}
+details.cw summary{cursor:pointer;list-style:none}
+details.cw summary::-webkit-details-marker{display:none}
+.linkbox{display:flex;gap:8px;margin:6px 0}
+.linkbox input{font:13px var(--mono)}
+.act-table td{font-size:.86rem}
+.act-table .when{white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--muted)}
+.act{font:600 .78rem var(--mono);white-space:nowrap}
+.act.integrity{color:var(--bad)} .act.access{color:#7c2d12} .act.quiz{color:var(--ok)} .act.register{color:var(--warn)}
+.person{cursor:pointer}
+.person:hover{background:var(--soft)}
+.status-Approved{background:var(--ok-soft);color:var(--ok)} .status-Pending{background:var(--warn-soft);color:var(--warn)}
+.status-Denied{background:var(--bad-soft);color:var(--bad)} .status-Removed{background:var(--soft);color:var(--muted)}
+@media (max-width:980px){ .two,.two.wide{grid-template-columns:1fr} .stats{grid-template-columns:1fr 1fr} }
+</style>
+</head>
+<body>
+<header class="topbar"><div class="wrap">
+  <div class="brand"><span class="badge-grade" id="roleBadge">Portal</span>
+    <div><div style="font-size:1.05rem">Booster Computing · Grades 6–8</div><div class="tiny muted"><?= school ?></div></div></div>
+  <div class="spacer"></div>
+  <span id="previews" class="actions"></span>
+  <span class="pill" id="who"></span>
+</div></header>
+<nav class="wrap tabs" id="tabs"></nav>
+<main class="wrap" id="main"><div class="loading"><span class="spinner"></span> Loading…</div></main>
+
+<?!= include('Lib') ?>
+<script>
+var BOOT = <?!= boot ?>;
+var S = { d:null, tab:'dash', cls:'', grade:'', topicId:null, courses:null, attDate:'', report:null, q:[], scope:'',
+          sf:{grade:'', cls:'', status:'Approved', q:''}, af:{email:'', role:'', action:'', text:'', from:'', to:''}, activity:null };
+var STATUSES = ['Present','Late','Absent','Excused'];
+var ACTIONS = [['','All actions'],['page.','Page views'],['register.','Registrations'],['access.','Access decisions'],['lesson.','Lessons'],
+               ['quiz.','Assessments'],['integrity.','Integrity alerts'],['session.','Sessions'],['topic.','Topic edits'],['class.','Classes'],
+               ['student.','Student edits'],['attendance.','Attendance'],['report.','Reports'],['classroom.','Classroom'],['file.','Uploads'],['admin.','Admin'],['download.','Downloads']];
+
+function isAdmin(){ return S.d && S.d.user.role === 'admin'; }
+function opt(v, label, sel){ return '<option value="' + esc(v) + '"' + (String(v) === String(sel) ? ' selected' : '') + '>' + esc(label) + '</option>'; }
+function classLabel(c){ return 'G' + c.grade + ' · ' + c.name; }
+function classById(id){ return S.d.classes.filter(function(c){ return c.id === id; })[0]; }
+function classOptions(sel, grade, blank){
+  return (blank ? opt('', blank, sel) : '') + S.d.classes.filter(function(c){ return !grade || c.grade === String(grade); })
+    .map(function(c){ return opt(c.id, classLabel(c), sel); }).join('');
+}
+function gradeOptions(sel, blank){ return (blank ? opt('', blank, sel) : '') + S.d.user.grades.map(function(g){ return opt(g, 'Grade ' + g + ' · Stage ' + S.d.stages[g], sel); }).join(''); }
+function val(id){ var e = document.getElementById(id); return e ? e.value.trim() : ''; }
+function ensureClass(){ if (!S.cls || !classById(S.cls)) S.cls = S.d.classes[0] ? S.d.classes[0].id : ''; return S.cls; }
+function noClasses(){ return '<div class="empty">Create a class first in the <a href="#" onclick="go(\'classes\');return false">Classes</a> tab.</div>'; }
+function busy(btn, on, label){ if (!btn) return; btn.disabled = on; if (label) btn.textContent = label; }
+function fail(e){ toast(String(e), 'bad'); }
+function apply(d){ S.d = d; renderHeader(); }
+function statusTag(s){ return '<span class="tag status-' + esc(s) + '">' + esc(s) + '</span>'; }
+function pendingStudents(){ return S.d.students.filter(function(s){ return s.status === 'Pending'; }); }
+function pendingTeachers(){ return isAdmin() ? S.d.teachers.filter(function(t){ return t.status === 'Pending'; }) : []; }
+function stat(k, v){ return '<div class="card stat"><div class="k">' + k + '</div><div class="v">' + v + '</div></div>'; }
+function track(event, detail){ run('logEvent', '', event, detail).catch(function(){}); }
+
+/* ------------------------------ boot ------------------------------ */
+run('getPortalData').then(function(d){
+  apply(d);
+  S.grade = d.user.grades[0] || '6';
+  S.attDate = d.today;
+  go((pendingStudents().length || pendingTeachers().length) ? 'requests' : 'dash');
+}).catch(function(e){ $('#main').innerHTML = '<div class="card"><h3>Could not load the portal</h3><p class="muted">' + esc(e) + '</p></div>'; });
+
+function tabsFor(){
+  var t = [['dash','Dashboard'],['requests','Requests'],['students','Students']];
+  if (isAdmin()) t.push(['teachers','Teachers']);
+  t = t.concat([['classes','Classes'],['attendance','Attendance'],['topics','Topics & Assessments'],['classroom','Google Classroom']]);
+  if (isAdmin()) t = t.concat([['activity','Activity log'],['settings','Settings & Downloads']]);
+  return t;
+}
+function renderHeader(){
+  var u = S.d.user;
+  document.body.classList.toggle('admin', isAdmin());
+  $('#roleBadge').textContent = isAdmin() ? 'Administrator' : 'Teacher Portal';
+  $('#who').textContent = (u.name || u.email) + (isAdmin() ? '' : ' · Grades ' + u.grades.join(', '));
+  $('#previews').innerHTML = u.grades.map(function(g){ return '<a class="btn ghost sm" href="' + esc(S.d.url) + '?page=grade&grade=' + g + '">Grade ' + g + ' page</a>'; }).join('');
+  var n = pendingStudents().length + pendingTeachers().length;
+  $('#tabs').innerHTML = tabsFor().map(function(t){
+    return '<button class="tab' + (S.tab === t[0] ? ' on' : '') + '" onclick="go(\'' + t[0] + '\')">' + t[1] + (t[0] === 'requests' && n ? '<span class="cnt">' + n + '</span>' : '') + '</button>';
+  }).join('');
+}
+function go(tab){
+  S.tab = tab; renderHeader();
+  ({dash:renderDash, requests:renderRequests, students:renderStudents, teachers:renderTeachers, classes:renderClasses,
+    attendance:renderAttendance, topics:renderTopics, classroom:renderClassroom, activity:renderActivity, settings:renderSettings})[tab]();
+  window.scrollTo(0, 0);
+}
+
+/* ------------------------------ dashboard / reports ------------------------------ */
+function renderDash(){
+  var d = S.d, pub = d.topics.filter(function(t){ return t.published; }).length;
+  var approved = d.students.filter(function(s){ return s.status === 'Approved'; }).length;
+  var pend = pendingStudents().length + pendingTeachers().length;
+  var h = '<div class="grid stats">' + stat('Approved students', approved) + stat('Pending requests', pend ? '<a href="#" onclick="go(\'requests\');return false">' + pend + '</a>' : '0') +
+    stat('Published topics', pub + ' <span class="muted" style="font-size:1rem">/ ' + d.topics.length + '</span>') + stat('Target score', d.target + '%') + '</div>';
+  if (!S.scope) S.scope = 'grade:' + S.grade;
+  h += '<div class="card"><div class="toolbar"><div><label for="r-scope">Progress report</label><select id="r-scope" onchange="loadReport(this.value)">' +
+    d.user.grades.map(function(g){ return opt('grade:' + g, 'All Grade ' + g + ' students', S.scope); }).join('') +
+    d.classes.map(function(c){ return opt(c.id, 'Class: ' + classLabel(c), S.scope); }).join('') + '</select></div>' +
+    '<span class="spacer"></span><button class="btn ghost" onclick="downloadReport()">Download report (CSV)</button></div><div id="report"></div></div>';
+  $('#main').innerHTML = h;
+  loadReport(S.scope);
+}
+function loadReport(scope){
+  S.scope = scope;
+  $('#report').innerHTML = '<div class="loading"><span class="spinner"></span> Building report…</div>';
+  run('getReport', scope).then(function(r){
+    S.report = r;
+    var s = r.summary;
+    var h = '<p style="margin-top:0"><b>' + s.onTarget + ' of ' + s.assessed + '</b> assessed students are at <b>' + r.target + '%+</b>' +
+      (s.classAverage !== null ? ' · average <b>' + s.classAverage + '%</b>' : '') + ' · ' + s.totalHours + ' learning hours in total.</p>';
+    if (!r.rows.length){ $('#report').innerHTML = h + '<div class="empty">No approved students here yet.</div>'; return; }
+    h += '<div class="tbl-wrap"><table><thead><tr><th>Student</th><th class="num">Hours</th><th class="num">Topics done</th><th class="num">Avg best score</th>' +
+      '<th class="num">Attempts</th><th class="num">Attendance</th><th class="num">Integrity alerts</th><th>Last seen</th><th>Status</th></tr></thead><tbody>' +
+      r.rows.map(function(x){
+        var cls = x.status === 'On target' ? 'ok' : x.status === 'Close' ? 'warn' : x.status === 'Needs support' ? 'bad' : 'neutral';
+        return '<tr><td><b>' + esc(x.name) + '</b><div class="tiny muted">' + esc(x.email) + '</div></td>' +
+          '<td class="num">' + fmtMinutes(x.minutes) + '</td><td class="num">' + x.completed + ' / ' + x.topics + '</td>' +
+          '<td class="num">' + (x.average === null ? '–' : x.average + '%') + '</td><td class="num">' + x.attempts + '</td>' +
+          '<td class="num">' + (x.attendance === null ? '–' : x.attendance + '%') + '</td>' +
+          '<td class="num">' + (x.flags ? '<span class="tag warn">' + x.flags + '</span>' : '0') + '</td>' +
+          '<td class="small">' + esc(String(x.lastSeen).slice(0, 16) || '–') + '</td>' +
+          '<td><span class="tag ' + cls + '">' + esc(x.status) + '</span></td></tr>';
+      }).join('') + '</tbody></table></div>';
+    $('#report').innerHTML = h;
+  }).catch(function(e){ $('#report').innerHTML = '<div class="empty">' + esc(e) + '</div>'; });
+}
+function csvCell(v){ v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+function downloadCsv(name, rows){
+  var csv = '﻿' + rows.map(function(r){ return r.map(csvCell).join(','); }).join('\n');
+  var a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv); a.download = name; a.target = '_blank';
+  document.body.appendChild(a); a.click(); a.remove();
+  track('download.csv', name);
+}
+function downloadReport(){
+  var r = S.report; if (!r) return;
+  downloadCsv('booster-report-' + r.label.replace(/\W+/g, '-') + '.csv',
+    [['Student','Email','Hours','Topics completed','Published topics','Average best %','Assessed topics','Attempts','Attendance %','Integrity alerts','Last seen','Status']]
+    .concat(r.rows.map(function(x){ return [x.name, x.email, (x.minutes / 60).toFixed(1), x.completed, x.topics, x.average, x.assessed, x.attempts, x.attendance, x.flags, x.lastSeen, x.status]; })));
+}
+
+/* ------------------------------ requests ------------------------------ */
+function renderRequests(){
+  var ps = pendingStudents(), pt = pendingTeachers();
+  var h = '';
+  if (isAdmin()){
+    h += '<div class="card"><h3>Teacher requests <span class="muted" style="font-weight:400">· ' + pt.length + ' waiting</span></h3>' +
+      (pt.length ? pt.map(function(t, i){
+        return '<div class="req"><div class="req-top"><div><b>' + esc(t.name) + '</b><div class="small muted">' + esc(t.email) + '</div></div>' +
+          '<div class="tiny muted">Requested ' + esc(String(t.requestedOn).slice(0, 16)) + '</div></div>' +
+          (t.message ? '<div class="msg">“' + esc(t.message) + '”</div>' : '') +
+          '<div class="actions" style="margin-top:8px"><span class="small"><b>Grant grades:</b></span>' + ['6','7','8'].map(function(g){
+            return '<label class="check" style="margin:0 8px 0 0"><input type="checkbox" class="tg-' + i + '" value="' + g + '"' + (t.requested.indexOf(g) >= 0 ? ' checked' : '') + '> ' + g + '</label>'; }).join('') +
+          '<span class="spacer"></span><button class="btn sm" onclick="teacherDecision(\'' + esc(t.email) + '\',\'approve\',' + i + ')">Approve</button>' +
+          '<button class="btn danger sm" onclick="teacherDecision(\'' + esc(t.email) + '\',\'deny\',' + i + ')">Deny</button></div></div>';
+      }).join('') : '<div class="empty">No teacher requests waiting.</div>') + '</div>';
+  }
+  h += '<div class="card"><h3>Student requests <span class="muted" style="font-weight:400">· ' + ps.length + ' waiting' + (isAdmin() ? '' : ' in Grade ' + S.d.user.grades.join(', ')) + '</span></h3>' +
+    (ps.length ? '<div class="actions" style="margin-bottom:10px"><button class="btn soft sm" onclick="approveAll()">Approve all ' + ps.length + ' with their chosen class</button></div>' +
+      ps.map(function(s){
+        return '<div class="req"><div class="req-top"><div><b>' + esc(s.name) + '</b> <span class="tag acc">Grade ' + esc(s.grade) + '</span><div class="small muted">' + esc(s.email) + '</div></div>' +
+          '<div class="tiny muted">Requested ' + esc(String(s.requestedOn).slice(0, 16)) + '</div></div>' +
+          (s.message ? '<div class="msg">“' + esc(s.message) + '”</div>' : '') +
+          '<div class="actions" style="margin-top:8px"><select id="rc-' + esc(s.email) + '">' + classOptions(s.classId, s.grade, 'No class yet') + '</select>' +
+          '<span class="spacer"></span><button class="btn sm" onclick="studentDecision(\'' + esc(s.email) + '\',\'approve\')">Approve</button>' +
+          '<button class="btn danger sm" onclick="studentDecision(\'' + esc(s.email) + '\',\'deny\')">Deny</button></div></div>';
+      }).join('') : '<div class="empty">No student requests waiting.</div>') + '</div>';
+  var recent = S.d.students.filter(function(s){ return s.decidedOn && s.status !== 'Pending'; })
+    .sort(function(a, b){ return String(b.decidedOn).localeCompare(String(a.decidedOn)); }).slice(0, 15);
+  if (recent.length) h += '<div class="card"><h3>Recent decisions</h3><div class="tbl-wrap"><table><thead><tr><th>Student</th><th>Grade</th><th>Decision</th><th>By</th><th>When</th></tr></thead><tbody>' +
+    recent.map(function(s){ return '<tr><td>' + esc(s.name) + '<div class="tiny muted">' + esc(s.email) + '</div></td><td>' + esc(s.grade) + '</td><td>' + statusTag(s.status) +
+      (s.note ? '<div class="tiny muted">' + esc(s.note) + '</div>' : '') + '</td><td class="small">' + esc(s.decidedBy) + '</td><td class="small">' + esc(String(s.decidedOn).slice(0, 16)) + '</td></tr>'; }).join('') +
+    '</tbody></table></div></div>';
+  $('#main').innerHTML = h;
+}
+function studentDecision(email, decision, extra){
+  var opts = extra || {};
+  if (decision === 'approve' && opts.classId === undefined){ var sel = document.getElementById('rc-' + email); if (sel) opts.classId = sel.value; }
+  if ((decision === 'deny' || decision === 'remove') && opts.note === undefined){
+    var note = prompt((decision === 'deny' ? 'Deny ' : 'Remove ') + email + '?\nOptional note the student will see:', '');
+    if (note === null) return;
+    opts.note = note;
+  }
+  return run('decideStudent', email, decision, opts).then(function(d){ apply(d); toast('Student ' + (decision === 'approve' ? 'approved' : decision === 'restore' ? 'restored' : decision === 'deny' ? 'denied' : 'removed') + '.', 'ok'); go(S.tab); }).catch(fail);
+}
+function approveAll(){
+  var ps = pendingStudents();
+  if (!confirm('Approve all ' + ps.length + ' student requests?')) return;
+  var chain = Promise.resolve();
+  ps.forEach(function(s){ chain = chain.then(function(){ var sel = document.getElementById('rc-' + s.email); return run('decideStudent', s.email, 'approve', { classId: sel ? sel.value : s.classId }).then(apply); }); });
+  chain.then(function(){ toast('All requests approved.', 'ok'); go('requests'); }).catch(function(e){ fail(e); go('requests'); });
+}
+function teacherDecision(email, decision, i, gradesOverride){
+  var grades = gradesOverride || $$('.tg-' + i).filter(function(c){ return c.checked; }).map(function(c){ return c.value; });
+  var note = '';
+  if (decision !== 'approve'){ note = prompt((decision === 'deny' ? 'Deny ' : 'Remove ') + email + '?\nOptional note the teacher will see:', ''); if (note === null) return; }
+  run('decideTeacher', email, decision, grades, note).then(function(d){ apply(d); toast('Teacher ' + ({approve:'approved', deny:'denied', remove:'removed'})[decision] + '.', 'ok'); go(S.tab); }).catch(fail);
+}
+
+/* ------------------------------ students ------------------------------ */
+function renderStudents(editEmail){
+  var d = S.d, f = S.sf;
+  var st = editEmail ? d.students.filter(function(s){ return s.email === editEmail; })[0] : null;
+  var list = d.students.filter(function(s){
+    return (!f.grade || s.grade === f.grade) && (!f.cls || s.classId === f.cls) && (!f.status || s.status === f.status) &&
+           (!f.q || (s.name + ' ' + s.email).toLowerCase().indexOf(f.q.toLowerCase()) >= 0);
+  }).sort(function(a, b){ return String(a.name).localeCompare(String(b.name)); });
+  var h = '<div class="card"><div class="toolbar">' +
+    '<div><label for="sf-grade">Grade</label><select id="sf-grade" onchange="S.sf.grade=this.value;S.sf.cls=\'\';renderStudents()">' + gradeOptions(f.grade, 'All my grades') + '</select></div>' +
+    '<div><label for="sf-cls">Class</label><select id="sf-cls" onchange="S.sf.cls=this.value;renderStudents()">' + classOptions(f.cls, f.grade, 'All classes') + '</select></div>' +
+    '<div><label for="sf-status">Status</label><select id="sf-status" onchange="S.sf.status=this.value;renderStudents()">' +
+      [['','All'],['Approved','Approved'],['Pending','Pending'],['Denied','Denied'],['Removed','Removed']].map(function(o){ return opt(o[0], o[1], f.status); }).join('') + '</select></div>' +
+    '<div style="flex:1"><label for="sf-q">Search</label><input type="text" id="sf-q" value="' + esc(f.q) + '" placeholder="Name or email" onkeydown="if(event.key===\'Enter\'){S.sf.q=this.value;renderStudents()}"></div>' +
+    '<button class="btn ghost" onclick="S.sf.q=val(\'sf-q\');renderStudents()">Search</button></div>';
+  h += list.length ? '<div class="tbl-wrap"><table><thead><tr><th>Student</th><th>Grade / class</th><th>Status</th><th class="num">Learning time</th><th>Decided by</th><th></th></tr></thead><tbody>' +
+    list.map(function(s){
+      var c = classById(s.classId);
+      var a = '';
+      if (s.status === 'Approved') a += '<button class="btn ghost sm" onclick="renderStudents(\'' + esc(s.email) + '\')">Edit / move</button>';
+      if (s.status === 'Pending' || s.status === 'Denied') a += '<button class="btn sm" onclick="studentDecision(\'' + esc(s.email) + '\',\'approve\',{})">Approve</button>';
+      if (s.status === 'Pending') a += '<button class="btn danger sm" onclick="studentDecision(\'' + esc(s.email) + '\',\'deny\')">Deny</button>';
+      if (isAdmin() && s.status !== 'Removed') a += '<button class="btn danger sm" onclick="studentDecision(\'' + esc(s.email) + '\',\'remove\')">Remove</button>';
+      if (isAdmin() && s.status === 'Removed') a += '<button class="btn soft sm" onclick="studentDecision(\'' + esc(s.email) + '\',\'restore\',{})">Restore</button>';
+      if (isAdmin()) a += '<button class="btn ghost sm" onclick="traceUser(\'' + esc(s.email) + '\')">Activity</button>';
+      return '<tr><td><b>' + esc(s.name) + '</b><div class="tiny muted">' + esc(s.email) + '</div></td>' +
+        '<td>Grade ' + esc(s.grade) + '<div class="tiny muted">' + esc(c ? c.name : 'No class') + '</div></td>' +
+        '<td>' + statusTag(s.status) + (s.note ? '<div class="tiny muted">' + esc(s.note) + '</div>' : '') + '</td>' +
+        '<td class="num">' + fmtMinutes(s.minutes) + '</td><td class="small">' + esc(s.decidedBy || '–') + '<div class="tiny muted">' + esc(String(s.decidedOn || '').slice(0, 10)) + '</div></td>' +
+        '<td><div class="actions">' + a + '</div></td></tr>';
+    }).join('') + '</tbody></table></div>' : '<div class="empty">No students match these filters.</div>';
+  h += '</div>';
+
+  h += '<div class="two" style="margin-top:16px">';
+  if (st){
+    h += '<div class="card" id="editCard"><h3>Edit ' + esc(st.name) + '</h3>' +
+      '<label for="e-name">Full name</label><input type="text" id="e-name" value="' + esc(st.name) + '">' +
+      '<div class="row"><div><label for="e-grade">Grade</label><select id="e-grade" onchange="$(\'#e-class\').innerHTML=classOptions(\'\',this.value,\'No class\')">' + gradeOptions(st.grade) + '</select></div>' +
+      '<div><label for="e-class">Class</label><select id="e-class">' + classOptions(st.classId, st.grade, 'No class') + '</select></div></div>' +
+      '<div class="actions" style="margin-top:14px"><button class="btn" onclick="saveStudentEdit(\'' + esc(st.email) + '\')">Save</button><button class="btn ghost" onclick="renderStudents()">Cancel</button></div></div>';
+  } else h += '<div></div>';
+  h += '<div class="card"><h3>Add students directly</h3><p class="hint" style="margin-top:0">For class lists you already have. One student per line: <code class="inline-code">Name, email</code>. They are approved straight away.</p>' +
+    '<div class="row"><div><label for="b-grade">Grade</label><select id="b-grade" onchange="$(\'#b-class\').innerHTML=classOptions(\'\',this.value,\'No class\')">' + gradeOptions(S.grade) + '</select></div>' +
+    '<div><label for="b-class">Class</label><select id="b-class">' + classOptions('', S.grade, 'No class') + '</select></div></div>' +
+    '<textarea id="b-text" style="margin-top:10px" placeholder="Nguyen Van An, an.nguyen@school.edu.vn&#10;Tran Thi Binh, binh.tran@school.edu.vn"></textarea>' +
+    '<button class="btn soft" style="margin-top:10px" id="b-btn" onclick="bulkAdd()">Add students</button><div id="bulkMsg"></div></div></div>';
+  $('#main').innerHTML = h;
+  if (st) $('#editCard').scrollIntoView({behavior:'smooth'});
+}
+function saveStudentEdit(email){
+  run('updateStudent', email, val('e-name'), val('e-grade'), val('e-class')).then(function(d){ apply(d); toast('Student updated.', 'ok'); renderStudents(); }).catch(fail);
+}
+function bulkAdd(){
+  var b = $('#b-btn'); busy(b, true, 'Adding…');
+  run('addStudentsBulk', val('b-grade'), val('b-class'), $('#b-text').value).then(function(d){
+    apply(d); renderStudents();
+    $('#bulkMsg').innerHTML = '<p class="small"><b>' + d.bulk.added + ' added.</b>' + (d.bulk.skipped.length ? ' Skipped: ' + d.bulk.skipped.map(esc).join('; ') : '') + '</p>';
+  }).catch(function(e){ fail(e); busy(b, false, 'Add students'); });
+}
+
+/* ------------------------------ teachers (admin) ------------------------------ */
+function renderTeachers(){
+  if (!isAdmin()) return go('dash');
+  var t = S.d.teachers.slice().sort(function(a, b){ return (a.status === 'Pending' ? 0 : 1) - (b.status === 'Pending' ? 0 : 1) || String(a.name).localeCompare(String(b.name)); });
+  var h = '<div class="two"><div class="card"><h3>Add a teacher directly</h3><p class="hint" style="margin-top:0">Teachers can also register themselves on the main page; their requests appear under Requests.</p>' +
+    '<label for="nt-name">Name</label><input type="text" id="nt-name"><label for="nt-email">School email</label><input type="email" id="nt-email">' +
+    '<label>Grade levels</label><div class="actions">' + ['6','7','8'].map(function(g){ return '<label class="check" style="margin:4px 12px 4px 0"><input type="checkbox" class="nt-g" value="' + g + '"> Grade ' + g + '</label>'; }).join('') + '</div>' +
+    '<button class="btn" style="margin-top:12px" onclick="addTeacher()">Add & approve</button></div>';
+  h += '<div class="card"><h3>All teachers</h3>' + (t.length ? '<div class="tbl-wrap"><table><thead><tr><th>Teacher</th><th>Status</th><th>Grade access</th><th></th></tr></thead><tbody>' +
+    t.map(function(x, i){
+      return '<tr><td><b>' + esc(x.name) + '</b><div class="tiny muted">' + esc(x.email) + '</div>' + (x.message ? '<div class="tiny muted">“' + esc(x.message) + '”</div>' : '') + '</td>' +
+        '<td>' + statusTag(x.status) + '<div class="tiny muted">' + (x.requested.length ? 'asked: ' + x.requested.join(', ') : '') + '</div></td>' +
+        '<td><div class="actions">' + ['6','7','8'].map(function(g){
+          var on = x.status === 'Approved' ? x.grades.indexOf(g) >= 0 : x.requested.indexOf(g) >= 0;
+          return '<label class="check" style="margin:0 6px 0 0"><input type="checkbox" class="tg-t' + i + '" value="' + g + '"' + (on ? ' checked' : '') + '> ' + g + '</label>'; }).join('') + '</div></td>' +
+        '<td><div class="actions"><button class="btn sm" onclick="teacherDecision(\'' + esc(x.email) + '\',\'approve\',\'t' + i + '\')">' + (x.status === 'Approved' ? 'Update grades' : 'Approve') + '</button>' +
+        (x.status === 'Pending' ? '<button class="btn danger sm" onclick="teacherDecision(\'' + esc(x.email) + '\',\'deny\')">Deny</button>' : '') +
+        (x.status === 'Approved' ? '<button class="btn danger sm" onclick="teacherDecision(\'' + esc(x.email) + '\',\'remove\')">Remove</button>' : '') +
+        '<button class="btn ghost sm" onclick="traceUser(\'' + esc(x.email) + '\')">Activity</button></div></td></tr>';
+    }).join('') + '</tbody></table></div>' : '<div class="empty">No teachers yet.</div>') + '</div></div>';
+  $('#main').innerHTML = h;
+}
+function addTeacher(){
+  run('adminAddTeacher', { name: val('nt-name'), email: val('nt-email'), grades: $$('.nt-g').filter(function(c){ return c.checked; }).map(function(c){ return c.value; }) })
+    .then(function(d){ apply(d); toast('Teacher added.', 'ok'); renderTeachers(); }).catch(fail);
+}
+
+/* ------------------------------ classes ------------------------------ */
+function renderClasses(editId){
+  var d = S.d, c = editId ? classById(editId) : null;
+  var counts = {}; d.students.forEach(function(s){ if (s.status === 'Approved') counts[s.classId] = (counts[s.classId] || 0) + 1; });
+  var h = '<div class="two"><div class="card"><h3>' + (c ? 'Edit class' : 'New class') + '</h3>' +
+    '<input type="hidden" id="c-id" value="' + esc(c ? c.id : '') + '">' +
+    '<label for="c-grade">Grade</label><select id="c-grade">' + gradeOptions(c ? c.grade : S.grade) + '</select>' +
+    '<label for="c-name">Class name</label><input type="text" id="c-name" placeholder="e.g. 7A Booster" value="' + esc(c ? c.name : '') + '">' +
+    '<label for="c-subject">Subject</label><input type="text" id="c-subject" placeholder="Computing" value="' + esc(c ? c.subject : '') + '">' +
+    '<label for="c-schedule">Schedule</label><input type="text" id="c-schedule" placeholder="e.g. Tue & Thu 15:30–16:30" value="' + esc(c ? c.schedule : '') + '">' +
+    (isAdmin() ? '<label for="c-teacher">Teacher email (blank = you)</label><input type="email" id="c-teacher" value="' + esc(c ? c.teacher : '') + '">' : '') +
+    '<label for="c-course">Google Classroom course ID</label><input type="text" id="c-course" placeholder="Pick below or paste the course ID" value="' + esc(c ? c.courseId : '') + '">' +
+    '<div id="courseBox" style="margin-top:8px"><button class="btn ghost sm" onclick="pickCourse()">Choose from my Google Classroom</button></div>' +
+    '<div class="actions" style="margin-top:18px"><button class="btn" id="c-save" onclick="saveClass()">' + (c ? 'Save changes' : 'Create class') + '</button>' +
+    (c ? '<button class="btn ghost" onclick="renderClasses()">Cancel</button>' : '') + '</div></div>';
+  h += '<div class="card"><h3>Classes in ' + (isAdmin() ? 'all grades' : 'Grade ' + d.user.grades.join(', ')) + '</h3>' + (d.classes.length ? '<div class="tbl-wrap"><table><thead><tr><th>Class</th><th>Teacher</th>' +
+    '<th>Classroom</th><th class="num">Students</th><th></th></tr></thead><tbody>' +
+    d.classes.map(function(x){
+      return '<tr><td><b>' + esc(x.name) + '</b><div class="tiny muted">Grade ' + esc(x.grade) + ' · ' + esc(x.schedule || '') + '</div></td>' +
+        '<td class="small">' + esc(x.teacher) + '</td>' +
+        '<td>' + (x.courseId ? '<span class="tag ok">Linked</span>' : '<span class="tag neutral">Not linked</span>') + '</td>' +
+        '<td class="num">' + (counts[x.id] || 0) + '</td>' +
+        '<td>' + (x.mine || isAdmin() ? '<div class="actions"><button class="btn ghost sm" onclick="renderClasses(\'' + esc(x.id) + '\')">Edit</button>' +
+        '<button class="btn danger sm" onclick="deleteClass(\'' + esc(x.id) + '\')">Delete</button></div>' : '<span class="tiny muted">Owner only</span>') + '</td></tr>';
+    }).join('') + '</tbody></table></div>' : '<div class="empty">No classes yet.</div>') + '</div></div>';
+  $('#main').innerHTML = h;
+}
+function pickCourse(){
+  var box = $('#courseBox');
+  if (S.courses) return showCourses();
+  box.innerHTML = '<span class="spinner"></span> Loading your Classroom courses…';
+  run('listMyCourses').then(function(c){ S.courses = c; showCourses(); })
+    .catch(function(e){ box.innerHTML = '<div class="hint" style="color:var(--bad)">' + esc(e) + '</div><div class="hint">The administrator account must be a co-teacher in the course, or paste the course ID manually.</div>'; });
+}
+function showCourses(){
+  var cur = val('c-course');
+  $('#courseBox').innerHTML = S.courses.length
+    ? '<select onchange="document.getElementById(\'c-course\').value=this.value"><option value="">— Select a course —</option>' +
+      S.courses.map(function(c){ return opt(c.id, c.name + (c.section ? ' (' + c.section + ')' : ''), cur); }).join('') + '</select>'
+    : '<div class="hint">No active Classroom courses found.</div>';
+}
+function saveClass(){
+  var b = $('#c-save'); busy(b, true, 'Saving…');
+  run('saveClass', { id: val('c-id'), grade: val('c-grade'), name: val('c-name'), subject: val('c-subject'), schedule: val('c-schedule'), teacher: val('c-teacher'), courseId: val('c-course') })
+    .then(function(d){ apply(d); toast('Class saved.', 'ok'); renderClasses(); })
+    .catch(function(e){ fail(e); busy(b, false, 'Save'); });
+}
+function deleteClass(id){
+  var c = classById(id);
+  if (!confirm('Delete class "' + c.name + '"?')) return;
+  run('deleteClass', id).then(function(d){ apply(d); toast('Class deleted.', 'ok'); renderClasses(); }).catch(fail);
+}
+
+/* ------------------------------ attendance ------------------------------ */
+var ATT = null;
+function renderAttendance(){
+  if (!S.d.classes.length){ $('#main').innerHTML = noClasses(); return; }
+  ensureClass();
+  $('#main').innerHTML = '<div class="card"><div class="toolbar">' +
+    '<div><label for="a-cls">Class</label><select id="a-cls">' + classOptions(S.cls) + '</select></div>' +
+    '<div><label for="a-date">Date</label><input type="date" id="a-date" value="' + esc(S.attDate) + '"></div>' +
+    '<button class="btn ghost" onclick="loadAttendance()">Load</button><span class="spacer"></span>' +
+    '<button class="btn ghost" onclick="markAll(\'Present\')">Mark all present</button><button class="btn" id="a-save" onclick="saveAttendance()">Save attendance</button></div>' +
+    '<div id="att"></div></div>';
+  loadAttendance();
+}
+function loadAttendance(){
+  S.cls = val('a-cls'); S.attDate = val('a-date');
+  $('#att').innerHTML = '<div class="loading"><span class="spinner"></span></div>';
+  run('getAttendance', S.cls, S.attDate).then(function(a){ ATT = a; drawAttendance(); })
+    .catch(function(e){ $('#att').innerHTML = '<div class="empty">' + esc(e) + '</div>'; });
+}
+function drawAttendance(){
+  if (!ATT.students.length){ $('#att').innerHTML = '<div class="empty">No approved students in this class.</div>'; return; }
+  $('#att').innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Student</th><th>Status</th><th class="num">Online that day</th></tr></thead><tbody>' +
+    ATT.students.map(function(s, i){
+      return '<tr><td><b>' + esc(s.name) + '</b><div class="tiny muted">' + esc(s.email) + '</div></td><td><div class="seg">' +
+        STATUSES.map(function(v){ return '<button data-v="' + v + '" class="' + (s.status === v ? 'on' : '') + '" onclick="setAtt(' + i + ',\'' + v + '\')">' + v + '</button>'; }).join('') +
+        '</div></td><td class="num">' + (s.online ? fmtMinutes(s.online) : '–') + '</td></tr>';
+    }).join('') + '</tbody></table></div>';
+}
+function setAtt(i, v){ ATT.students[i].status = v; drawAttendance(); }
+function markAll(v){ if (!ATT) return; ATT.students.forEach(function(s){ s.status = v; }); drawAttendance(); }
+function saveAttendance(){
+  if (!ATT) return;
+  var b = $('#a-save'); busy(b, true, 'Saving…');
+  run('saveAttendance', ATT.classId, ATT.date, ATT.students.map(function(s){ return { email: s.email, status: s.status }; }))
+    .then(function(a){ ATT = a; drawAttendance(); toast('Attendance saved for ' + a.date + '.', 'ok'); })
+    .catch(fail).then(function(){ busy(b, false, 'Save attendance'); });
+}
+
+/* ------------------------------ topics & assessments ------------------------------ */
+function renderTopics(){
+  var d = S.d;
+  if (d.user.grades.indexOf(S.grade) < 0) S.grade = d.user.grades[0];
+  var list = d.topics.filter(function(t){ return t.grade === S.grade; });
+  var lastUnit = null;
+  var h = '<div class="toolbar"><div><label for="t-grade">Grade</label><select id="t-grade" onchange="S.grade=this.value;S.topicId=null;renderTopics()">' + gradeOptions(S.grade) + '</select></div>' +
+    '<a class="btn ghost" href="' + esc(d.url) + '?page=grade&grade=' + esc(S.grade) + '">Preview Grade ' + esc(S.grade) + ' page</a></div>';
+  h += '<div class="two wide"><div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0">' + list.length + ' topics</h3>' +
+    '<button class="btn sm" onclick="editTopic(null)">+ New topic</button></div><div style="margin-top:6px">' +
+    (list.length ? list.map(function(t){
+      var head = '';
+      if (t.unit !== lastUnit){ lastUnit = t.unit; head = '<div class="unit-h">' + esc(t.unit ? 'Unit ' + t.unit : 'No unit') + '</div>'; }
+      return head + '<button class="topic-li' + (S.topicId === t.id ? ' on' : '') + '" data-id="' + esc(t.id) + '" onclick="editTopic(\'' + esc(t.id) + '\')">' +
+        '<span style="flex:1">' + esc(t.title) + '<span class="tiny muted" style="display:block">' + t.questions + ' questions</span></span>' +
+        (t.published ? '<span class="tag ok">Live</span>' : '<span class="tag neutral">Draft</span>') + '</button>';
+    }).join('') : '<div class="empty">No topics for this grade yet.</div>') + '</div></div><div class="card" id="editor"></div></div>';
+  $('#main').innerHTML = h;
+  editTopic(S.topicId && d.topics.some(function(t){ return t.id === S.topicId; }) ? S.topicId : null);
+}
+function editTopic(id){
+  S.topicId = id;
+  $$('.topic-li').forEach(function(b){ b.classList.toggle('on', b.dataset.id === id); });
+  var t = id ? S.d.topics.filter(function(x){ return x.id === id; })[0] : null;
+  var stage = S.d.stages[S.grade];
+  var ta = function(fid, label, value, cls, ph, hint){
+    return '<label for="' + fid + '">' + label + '</label><textarea id="' + fid + '" class="' + (cls || '') + '" placeholder="' + esc(ph || '') + '">' + esc(value || '') + '</textarea>' + (hint ? '<div class="hint">' + hint + '</div>' : '');
+  };
+  var inp = function(fid, label, value, ph, type){
+    return '<label for="' + fid + '">' + label + '</label><input type="' + (type || 'text') + '" id="' + fid + '" value="' + esc(value == null ? '' : value) + '" placeholder="' + esc(ph || '') + '">';
+  };
+  var h = '<h3>' + (t ? 'Edit topic' : 'New Grade ' + esc(S.grade) + ' topic') + '</h3>' +
+    '<div class="row"><div style="flex:3">' + inp('t-title', 'Topic title', t && t.title, 'e.g. Variables and data types') + '</div>' +
+    '<div style="flex:1">' + inp('t-unit', 'Unit', t ? t.unit : stage + '.1', stage + '.1') + '</div>' +
+    '<div style="flex:1">' + inp('t-order', 'Order in unit', t ? t.order : 1, '', 'number') + '</div></div>' +
+    '<label class="check"><input type="checkbox" id="t-pub"' + (!t || t.published ? ' checked' : '') + '> Published (visible to students)</label>' +
+    ta('t-obj', 'Learning objectives (required, one per line)', t && t.objectives, 'Explain what a variable is\nCreate a Python program that uses a variable', '', 'Write them as “I can…” statements without the words “I can” — students see “By the end of this topic I can:” above the list.') +
+    inp('t-book', 'Book reference', t && t.bookRef, 'Cambridge Lower Secondary Computing ' + stage + ', Unit ' + stage + '.1, pp. 24–27') +
+
+    '<div class="section-title">Video presentation</div>' +
+    inp('t-video', 'Video link (YouTube, Google Drive or Google Slides)', t && t.videoUrl, 'https://www.youtube.com/watch?v=…', 'url') +
+    '<div class="row" style="align-items:center;margin-top:8px"><div style="flex:0 0 auto"><input type="file" id="t-file" class="hidden" accept="video/*,.pdf,.ppt,.pptx,.doc,.docx,image/*" onchange="uploadLessonFile(this)">' +
+    '<button class="btn ghost sm" onclick="$(\'#t-file\').click()">Upload a file…</button></div><div class="hint" id="t-upmsg" style="margin:0">Videos go into the video slot; slides, PDFs and images become the lesson file. Max 25 MB.</div></div>' +
+
+    '<div class="section-title">Topic breakdown (W3Schools style)</div>' +
+    ta('t-expl', 'Explanation', t && t.explanation, 'Explain the idea in short, simple sentences…', '', 'Formatting: <b>**bold**</b>, <code class="inline-code">`code`</code>, lines starting with <code class="inline-code">- </code> become bullets, <code class="inline-code">### </code> is a sub-heading, <code class="inline-code">```python</code> … <code class="inline-code">```</code> is a code block.') +
+    ta('t-syntax', 'Syntax', t && t.syntax, 'print(value)', 'code', 'Shown in a grey Syntax box. Leave blank for non-programming topics.') +
+    ta('t-example', 'Example', t && t.example, 'name = input("Name? ")\nprint("Hello", name)', 'code', 'Shown in an Example box with a “Try it Yourself” button.') +
+    ta('t-note', 'Note (common mistakes, tips)', t && t.note, '', '', '') +
+
+    '<div class="section-title">Resources</div>' +
+    inp('t-res', 'Hodder Boost / eBook link', t && t.resourceUrl, 'https://www.boost-learning.com/…', 'url') +
+    inp('t-att', 'Lesson file link (slides, worksheet, PDF)', t && t.attachmentUrl, 'https://drive.google.com/…', 'url') +
+    inp('t-try', '“Try it Yourself” link (optional)', t && t.customTryIt, 'Leave blank for the default Python editor', 'url') +
+
+    '<div class="section-title">Assessment (English only)</div>' +
+    '<p class="hint">Multiple choice: fill options A–D and set the answer letter. Short answer: leave the options empty and type accepted answers separated by <code class="inline-code">|</code>.</p>' +
+    '<div id="qlist"><div class="loading"><span class="spinner"></span></div></div>' +
+    '<div class="actions"><button class="btn ghost sm" onclick="addQ(false)">+ Multiple-choice question</button><button class="btn ghost sm" onclick="addQ(true)">+ Short-answer question</button></div>' +
+    '<div class="actions" style="margin-top:24px;padding-top:16px;border-top:1px solid var(--line)">' +
+    '<button class="btn" id="t-save" onclick="saveTopic()">Save topic</button>' + (t ? '<button class="btn danger" onclick="deleteTopic()">Delete topic</button>' : '') +
+    (t && t.updatedBy ? '<span class="tiny muted">Last edited by ' + esc(t.updatedBy) + ' · ' + esc(String(t.updatedOn).slice(0, 16)) + '</span>' : '') + '</div>';
+  $('#editor').innerHTML = h;
+  $$('textarea.code', $('#editor')).forEach(tabIndent);
+  if (t) run('getQuestions', t.id).then(function(q){ if (S.topicId === t.id){ S.q = q; drawQ(); } }).catch(fail);
+  else { S.q = []; drawQ(); }
+}
+function tabIndent(el){
+  el.addEventListener('keydown', function(e){
+    if (e.key !== 'Tab') return;
+    e.preventDefault();
+    var s = el.selectionStart, en = el.selectionEnd;
+    el.value = el.value.slice(0, s) + '    ' + el.value.slice(en);
+    el.selectionStart = el.selectionEnd = s + 4;
+  });
+}
+function readQ(){
+  $$('.qedit').forEach(function(box, i){
+    var g = function(k){ var e = box.querySelector('[data-k="' + k + '"]'); return e ? e.value : ''; };
+    S.q[i] = { q: g('q'), a: g('a'), b: g('b'), c: g('c'), d: g('d'), answer: g('answer'), text: S.q[i] && S.q[i].text };
+  });
+}
+function drawQ(){
+  $('#qlist').innerHTML = S.q.length ? S.q.map(function(q, i){
+    var isText = q.text || (!q.a && !q.b && !q.c && !q.d && q.q);
+    q.text = !!isText;
+    return '<div class="qedit"><div class="qhead"><span>Question ' + (i + 1) + ' · ' + (isText ? 'Short answer' : 'Multiple choice') + '</span>' +
+      '<button class="btn danger sm" onclick="removeQ(' + i + ')">Remove</button></div>' +
+      '<textarea data-k="q" style="min-height:60px;margin-top:8px" placeholder="Question text (you can use `code`)">' + esc(q.q) + '</textarea>' +
+      (isText ? '' : '<div class="row" style="margin-top:8px">' + ['a','b','c','d'].map(function(k){ return '<input type="text" data-k="' + k + '" placeholder="Option ' + k.toUpperCase() + '" value="' + esc(q[k]) + '">'; }).join('') + '</div>') +
+      '<div style="margin-top:8px;max-width:' + (isText ? '100%' : '200px') + '"><input type="text" data-k="answer" placeholder="' + (isText ? 'Accepted answers, e.g. print|print()' : 'Answer: A, B, C or D') + '" value="' + esc(q.answer) + '"></div></div>';
+  }).join('') : '<div class="empty" style="margin-bottom:10px">No questions yet. Add at least 5 so the score is meaningful.</div>';
+}
+function addQ(text){ readQ(); S.q.push({ q:'', a:'', b:'', c:'', d:'', answer:'', text: text }); drawQ(); }
+function removeQ(i){ readQ(); S.q.splice(i, 1); drawQ(); }
+function uploadLessonFile(input){
+  var f = input.files[0]; if (!f) return;
+  if (f.size > 25 * 1024 * 1024){ toast('That file is over 25 MB. Upload it to YouTube or Google Drive and paste the link instead.', 'bad'); input.value = ''; return; }
+  var msg = $('#t-upmsg'); msg.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px"></span> Uploading ' + esc(f.name) + '…';
+  var r = new FileReader();
+  r.onload = function(){
+    run('uploadFile', f.name, f.type, String(r.result).split(',')[1]).then(function(res){
+      if (res.isVideo) $('#t-video').value = res.url; else $('#t-att').value = res.url;
+      msg.innerHTML = 'Uploaded <b>' + esc(res.name) + '</b>. Remember to save the topic.';
+    }).catch(function(e){ msg.textContent = 'Upload failed: ' + e; });
+  };
+  r.readAsDataURL(f);
+  input.value = '';
+}
+function saveTopic(){
+  readQ();
+  var b = $('#t-save'); busy(b, true, 'Saving…');
+  var topic = { id: S.topicId, grade: S.grade, title: val('t-title'), unit: val('t-unit'), order: val('t-order'), published: $('#t-pub').checked,
+    objectives: $('#t-obj').value, bookRef: val('t-book'), videoUrl: val('t-video'), explanation: $('#t-expl').value, syntax: $('#t-syntax').value,
+    example: $('#t-example').value, note: $('#t-note').value, resourceUrl: val('t-res'), attachmentUrl: val('t-att'), tryItUrl: val('t-try') };
+  run('saveTopic', topic, S.q.map(function(q){ return { q: q.q, a: q.a, b: q.b, c: q.c, d: q.d, answer: q.answer }; }))
+    .then(function(d){ apply(d); S.topicId = d.savedTopicId; toast('Topic saved.', 'ok'); renderTopics(); })
+    .catch(function(e){ fail(e); busy(b, false, 'Save topic'); });
+}
+function deleteTopic(){
+  var t = S.d.topics.filter(function(x){ return x.id === S.topicId; })[0];
+  if (!t || !confirm('Delete "' + t.title + '" and its questions? Past scores stay in the Sheet.')) return;
+  run('deleteTopic', t.id).then(function(d){ apply(d); S.topicId = null; toast('Topic deleted.', 'ok'); renderTopics(); }).catch(fail);
+}
+
+/* ------------------------------ Google Classroom ------------------------------ */
+function renderClassroom(){
+  if (!S.d.classes.length){ $('#main').innerHTML = noClasses(); return; }
+  ensureClass();
+  $('#main').innerHTML = '<div class="card"><div class="toolbar"><div><label for="g-cls">Class</label><select id="g-cls">' + classOptions(S.cls) + '</select></div>' +
+    '<button class="btn" onclick="loadFeed()">Load stream & submissions</button></div>' +
+    '<p class="hint" style="margin-top:0">Link a class to its Google Classroom course in the Classes tab. Data is read live from Classroom.</p></div><div id="feed"></div>';
+  var c = classById(S.cls); if (c && c.courseId) loadFeed();
+}
+function loadFeed(){
+  S.cls = val('g-cls');
+  var c = classById(S.cls);
+  if (!c.courseId){ $('#feed').innerHTML = '<div class="card empty">This class is not linked to a Google Classroom course yet.</div>'; return; }
+  $('#feed').innerHTML = '<div class="card loading"><span class="spinner"></span> Reading Google Classroom…</div>';
+  run('getClassroomFeed', S.cls).then(function(f){
+    var h = '<div class="card" style="margin-top:16px"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">' +
+      '<div><h3 style="margin:0">' + esc(f.course.name) + '</h3><div class="muted small">' + esc(f.course.section) + ' · ' + f.rosterSize + ' students in Classroom</div></div>' +
+      '<a class="btn ghost" target="_blank" rel="noopener" href="' + esc(f.course.link) + '">Open in Classroom</a></div></div>';
+    h += '<div class="two" style="margin-top:16px"><div class="card"><h3>Stream</h3>' +
+      (f.announcements.length ? f.announcements.map(function(a){
+        return '<div class="feed-item"><div class="tiny muted">' + esc(String(a.time || '').replace('T', ' ').slice(0, 16)) + '</div><div class="feed-text">' + esc(a.text) + '</div>' +
+          '<a class="small" target="_blank" rel="noopener" href="' + esc(a.link) + '">Open post</a></div>';
+      }).join('') : '<div class="empty">No announcements.</div>') + '</div>';
+    h += '<div class="card"><h3>Classwork & submissions</h3>' + (f.work.length ? f.work.map(function(w){
+      var c = w.counts;
+      return '<details class="cw"><summary><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><b>' + esc(w.title) + '</b>' +
+        '<span class="tiny muted">' + (w.due ? 'Due ' + esc(w.due) : 'No due date') + (w.maxPoints ? ' · ' + esc(w.maxPoints) + ' pts' : '') + '</span></div>' +
+        '<div class="actions" style="margin-top:6px"><span class="tag ok">' + c.turnedIn + ' turned in</span><span class="tag acc">' + c.returned + ' returned</span>' +
+        '<span class="tag bad">' + c.notSubmitted + ' not submitted</span>' + (c.late ? '<span class="tag warn">' + c.late + ' late</span>' : '') + '</div></summary>' +
+        '<div class="tbl-wrap" style="margin-top:10px"><table><thead><tr><th>Student</th><th>Status</th><th class="num">Grade</th></tr></thead><tbody>' +
+        w.students.map(function(s){
+          var st = {TURNED_IN:['Turned in','ok'], RETURNED:['Returned','acc'], RECLAIMED_BY_STUDENT:['Unsubmitted','warn'], NEW:['Not submitted','bad'], CREATED:['Not submitted','bad']}[s.state] || [s.state,'neutral'];
+          return '<tr><td>' + esc(s.name) + '<div class="tiny muted">' + esc(s.email) + '</div></td><td><span class="tag ' + st[1] + '">' + st[0] + '</span>' + (s.late ? ' <span class="tag warn">Late</span>' : '') + '</td><td class="num">' + esc(s.grade) + '</td></tr>';
+        }).join('') + '</tbody></table></div><a class="small" target="_blank" rel="noopener" href="' + esc(w.link) + '">Open in Classroom</a></details>';
+    }).join('') : '<div class="empty">No classwork yet.</div>') + '</div></div>';
+    $('#feed').innerHTML = h;
+  }).catch(function(e){
+    $('#feed').innerHTML = '<div class="card"><h3>Could not read Google Classroom</h3><p class="muted">' + esc(e) + '</p><p class="hint">The administrator account (which runs the app) must be a teacher or co-teacher in the course.</p></div>';
+  });
+}
+
+/* ------------------------------ activity log (admin) ------------------------------ */
+function renderActivity(){
+  if (!isAdmin()) return go('dash');
+  var f = S.af;
+  $('#main').innerHTML = '<div class="grid stats" id="actStats"></div>' +
+    '<div class="card"><div class="toolbar">' +
+    '<div style="flex:1"><label for="af-email">Person (name or email)</label><input type="text" id="af-email" value="' + esc(f.email) + '"></div>' +
+    '<div><label for="af-role">Role</label><select id="af-role">' + [['','Everyone'],['student','Students'],['teacher','Teachers'],['admin','Administrator'],['guest','Not yet approved']].map(function(o){ return opt(o[0], o[1], f.role); }).join('') + '</select></div>' +
+    '<div><label for="af-action">Action</label><select id="af-action">' + ACTIONS.map(function(o){ return opt(o[0], o[1], f.action); }).join('') + '</select></div>' +
+    '<div><label for="af-from">From</label><input type="date" id="af-from" value="' + esc(f.from) + '"></div>' +
+    '<div><label for="af-to">To</label><input type="date" id="af-to" value="' + esc(f.to) + '"></div>' +
+    '<div style="flex:1"><label for="af-text">Contains</label><input type="text" id="af-text" value="' + esc(f.text) + '" placeholder="topic, class, detail…"></div>' +
+    '<button class="btn" onclick="loadActivity()">Apply</button><button class="btn ghost" onclick="S.af={email:\'\',role:\'\',action:\'\',text:\'\',from:\'\',to:\'\'};renderActivity()">Clear</button></div>' +
+    '<div id="actRows"><div class="loading"><span class="spinner"></span></div></div></div>' +
+    '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h3 style="margin:0">Everyone, by last activity</h3>' +
+    '<button class="btn ghost sm" onclick="archiveNow()">Archive old activity</button></div><div id="people" style="margin-top:12px"></div></div>';
+  loadActivity();
+}
+function loadActivity(){
+  ['email','role','action','text','from','to'].forEach(function(k){ S.af[k] = val('af-' + k); });
+  $('#actRows').innerHTML = '<div class="loading"><span class="spinner"></span> Reading the activity log…</div>';
+  run('getActivity', S.af).then(function(a){
+    S.activity = a;
+    $('#actStats').innerHTML = stat('Events today', a.today.events) + stat('People active today', a.today.users) + stat('Events stored', a.total.toLocaleString()) + stat('Showing', a.rows.length);
+    $('#actRows').innerHTML = (a.rows.length ? '<div class="actions" style="margin-bottom:8px"><span class="spacer"></span><button class="btn ghost sm" onclick="downloadActivity()">Download these rows (CSV)</button></div>' +
+      '<div class="tbl-wrap"><table class="act-table"><thead><tr><th>When</th><th>Who</th><th>Action</th><th>What</th><th>Details</th><th>Grade</th></tr></thead><tbody>' +
+      a.rows.map(function(r){
+        var fam = r.action.split('.')[0];
+        return '<tr><td class="when">' + esc(r.ts.slice(5, 16)) + '</td><td><a href="#" onclick="traceUser(\'' + esc(r.email) + '\');return false">' + esc(r.name || r.email) + '</a>' +
+          '<div class="tiny muted">' + esc(r.role) + '</div></td><td><span class="act ' + esc(fam) + '">' + esc(r.action) + '</span></td>' +
+          '<td>' + esc(r.target) + '</td><td class="small muted">' + esc(r.details) + '</td><td>' + esc(r.grade) + '</td></tr>';
+      }).join('') + '</tbody></table></div>' : '<div class="empty">No activity matches these filters.</div>') +
+      (a.scanned < a.total ? '<p class="hint">Searching the most recent ' + a.scanned.toLocaleString() + ' events. Older events are in the Activity tab of the Sheet (or the archive).</p>' : '');
+    $('#people').innerHTML = a.people.length ? '<div class="tbl-wrap"><table><thead><tr><th>Person</th><th>Role</th><th>Last seen</th><th>Last action</th><th class="num">Events</th></tr></thead><tbody>' +
+      a.people.slice(0, 300).map(function(p){
+        return '<tr class="person" onclick="traceUser(\'' + esc(p.email) + '\')"><td><b>' + esc(p.name || p.email) + '</b><div class="tiny muted">' + esc(p.email) + '</div></td><td>' + esc(p.role) + '</td>' +
+          '<td class="small">' + esc(p.lastSeen.slice(0, 16)) + '</td><td><span class="act">' + esc(p.lastAction) + '</span> <span class="small muted">' + esc(p.target) + '</span></td><td class="num">' + p.count + '</td></tr>';
+      }).join('') + '</tbody></table></div>' : '<div class="empty">No activity yet.</div>';
+  }).catch(function(e){ $('#actRows').innerHTML = '<div class="empty">' + esc(e) + '</div>'; });
+}
+function traceUser(email){
+  S.af = { email: email, role: '', action: '', text: '', from: '', to: '' };
+  if (S.tab !== 'activity'){ S.tab = 'activity'; go('activity'); } else renderActivity();
+}
+function downloadActivity(){
+  var a = S.activity; if (!a) return;
+  downloadCsv('booster-activity.csv', [['Timestamp','Email','Name','Role','Action','Target','Details','Grade']]
+    .concat(a.rows.map(function(r){ return [r.ts, r.email, r.name, r.role, r.action, r.target, r.details, r.grade]; })));
+}
+function archiveNow(){
+  if (!confirm('Move activity older than ' + S.d.settings.ActivityKeepDays + ' days into a separate archive Sheet in your Drive?')) return;
+  run('archiveActivityNow').then(function(r){ toast(r.moved ? r.moved + ' rows archived.' : 'Nothing old enough to archive.', 'ok'); loadActivity(); }).catch(fail);
+}
+
+/* ------------------------------ settings & downloads (admin) ------------------------------ */
+function renderSettings(){
+  if (!isAdmin()) return go('dash');
+  var s = S.d.settings, dl = S.d.downloads, url = S.d.url;
+  var h = '<div class="two"><div class="card"><h3>Download the data</h3>' +
+    '<p class="small muted" style="margin-top:0">Everything the website records is in the linked Google Sheet.</p>' +
+    '<div class="actions"><a class="btn" target="_blank" href="' + esc(dl.xlsx) + '" onclick="track(\'download.xlsx\',\'all tabs\')">Download everything (.xlsx)</a>' +
+    '<a class="btn ghost" target="_blank" href="' + esc(dl.sheetUrl) + '">Open the Google Sheet</a></div>' +
+    '<label>Single tabs as CSV</label><div class="actions">' + dl.tabs.map(function(x){ return '<a class="btn ghost sm" target="_blank" href="' + esc(x.csv) + '" onclick="track(\'download.csv\',\'' + esc(x.name) + '\')">' + esc(x.name) + '</a>'; }).join('') + '</div>' +
+    '<label>Links to share</label>' +
+    [['Everyone (register)', url], ['Teacher portal', url + '?page=portal'], ['Grade 6', url + '?page=grade&grade=6'], ['Grade 7', url + '?page=grade&grade=7'], ['Grade 8', url + '?page=grade&grade=8']]
+      .map(function(l){ return '<div class="linkbox"><span class="pill" style="min-width:140px">' + l[0] + '</span><input type="text" readonly value="' + esc(l[1]) + '" onclick="this.select()"></div>'; }).join('') + '</div>';
+  h += '<div class="card"><h3>Settings</h3>' +
+    '<label>Administrator</label><input type="text" readonly value="' + esc(s.AdminEmail) + '"><div class="hint">Only this account has administrator access. It can only be changed in Apps Script › Project Settings › Script Properties (ADMIN_EMAIL).</div>' +
+    '<label for="st-school">School / programme name</label><input type="text" id="st-school" value="' + esc(s.SchoolName) + '">' +
+    '<label for="st-domain">School email domain (only these accounts can register)</label><input type="text" id="st-domain" value="' + esc(s.SchoolDomain) + '" placeholder="school.edu.vn">' +
+    '<label for="st-subject">Default subject</label><input type="text" id="st-subject" value="' + esc(s.DefaultSubject) + '">' +
+    '<div class="row"><div><label for="st-target">Target score (%)</label><input type="number" id="st-target" min="1" max="100" value="' + esc(s.TargetPercent) + '"></div>' +
+    '<div><label for="st-switch">Tab switches before auto-submit</label><input type="number" id="st-switch" min="1" max="20" value="' + esc(s.MaxTabSwitches) + '"></div>' +
+    '<div><label for="st-keep">Keep activity (days)</label><input type="number" id="st-keep" min="14" value="' + esc(s.ActivityKeepDays) + '"></div></div>' +
+    '<label for="st-try">Default “Try it Yourself” link</label><input type="url" id="st-try" value="' + esc(s.TryItUrl) + '">' +
+    '<button class="btn" style="margin-top:14px" onclick="saveSettings()">Save settings</button></div></div>';
+  $('#main').innerHTML = h;
+}
+function saveSettings(){
+  run('saveSettings', { SchoolName: val('st-school'), SchoolDomain: val('st-domain'), DefaultSubject: val('st-subject'), TargetPercent: val('st-target'),
+    MaxTabSwitches: val('st-switch'), ActivityKeepDays: val('st-keep'), TryItUrl: val('st-try') })
+    .then(function(d){ apply(d); toast('Settings saved.', 'ok'); renderSettings(); }).catch(fail);
+}
+</script>
+</body>
+</html>

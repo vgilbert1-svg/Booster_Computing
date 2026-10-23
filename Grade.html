@@ -34,6 +34,7 @@ body.assessing .lang{display:none}
 .objectives[open] summary:before{transform:rotate(90deg)}
 .objectives ol{margin:12px 0 0;padding-left:1.4em}
 
+.hero>*,.layout>*{min-width:0}
 .layout{display:grid;grid-template-columns:290px 1fr;gap:20px;align-items:start;margin:16px 0 60px}
 .toc{position:sticky;top:80px;max-height:calc(100vh - 100px);overflow:auto;padding:12px}
 .toc h3{font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:6px 8px 10px}
@@ -43,6 +44,10 @@ body.assessing .lang{display:none}
 .toc-num{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font:600 .78rem var(--head);background:var(--soft);color:var(--muted);border:1px solid var(--line)}
 .toc-item.done .toc-num{background:var(--ok);color:#fff;border-color:var(--ok)}
 .toc-item.prog .toc-num{border-color:var(--accent);color:var(--accent)}
+.toc-unit{font:600 .74rem var(--head);text-transform:uppercase;letter-spacing:.05em;color:var(--accent);margin:14px 10px 4px}
+.toc-unit:first-of-type{margin-top:4px}
+.bookref{font-size:.85rem;color:var(--muted);margin:2px 0 6px}
+.obj li{margin:.2em 0}
 .toc-meta{display:block;font-size:.76rem;color:var(--muted);font-weight:400}
 
 .lesson{padding:28px 32px;min-height:420px}
@@ -92,7 +97,7 @@ body.assessing .lang{display:none}
 <header class="topbar"><div class="wrap">
   <div class="brand">
     <span class="badge-grade">Grade <?= grade ?></span>
-    <div><div style="font-size:1.05rem">Booster Classes</div><div class="tiny muted"><?= school ?></div></div>
+    <div><div style="font-size:1.05rem">Booster Computing</div><div class="tiny muted"><?= school ?></div></div>
   </div>
   <div class="spacer"></div>
   <span class="pill" id="hoursPill" title="Total learning time on your account. Counting pauses when you are inactive or on another tab.">
@@ -109,7 +114,6 @@ body.assessing .lang{display:none}
 
 <main class="wrap">
   <section class="hero" id="hero"><div class="loading"><span class="spinner"></span> Loading your lessons…</div></section>
-  <details class="card objectives" id="objectives"></details>
   <div class="layout">
     <aside class="card toc" id="toc" aria-label="Topics"></aside>
     <article class="card lesson" id="lesson"></article>
@@ -128,11 +132,11 @@ var furthest = {}, furthestDirty = false, observer = null;
 
 var L = {
   en: { syntax:'Syntax', example:'Example', note:'Note', tryit:'Try it Yourself »', complete:'Mark topic as complete', completed:'Completed',
-        resource:'Open Hodder Boost resource', file:'Open lesson file', objectives:'In this topic you will', topic:'Topic',
+        resource:'Open Hodder Boost resource', file:'Open lesson file', objectives:'Learning objectives · By the end of this topic I can', topic:'Topic',
         quiz:'Take the assessment', quizNote:'Assessments are in English only.', best:'Best score', prev:'‹ Previous', next:'Next ›',
         continue:'Continue learning', start:'Start learning' },
   vi: { syntax:'Cú pháp (Syntax)', example:'Ví dụ (Example)', note:'Lưu ý', tryit:'Tự thử (Try it Yourself) »', complete:'Đánh dấu đã học xong',
-        completed:'Đã hoàn thành', resource:'Mở tài liệu Hodder Boost', file:'Mở tệp bài học', objectives:'Trong chủ đề này, em sẽ',
+        completed:'Đã hoàn thành', resource:'Mở tài liệu Hodder Boost', file:'Mở tệp bài học', objectives:'Mục tiêu bài học · Sau chủ đề này, em có thể',
         topic:'Chủ đề', quiz:'Làm bài kiểm tra (Take the assessment)', quizNote:'Bài kiểm tra chỉ bằng tiếng Anh. Assessments are in English only.',
         best:'Điểm cao nhất', prev:'‹ Bài trước', next:'Bài tiếp ›', continue:'Học tiếp', start:'Bắt đầu học' }
 };
@@ -142,7 +146,7 @@ function t(k){ return (L[lang] && L[lang][k]) || L.en[k] || k; }
 (function init(){
   if (window.Guard) Guard.enable(BOOT.grade);
   $('#who').textContent = BOOT.user.name || BOOT.user.email || 'Guest';
-  $('#portalLink').href = BOOT.url + '?page=teacher';
+  $('#portalLink').href = BOOT.url + '?page=portal';
   $$('.lang button').forEach(function(b){ b.onclick = function(){ setLang(b.dataset.lang); }; });
   ['mousemove','keydown','scroll','touchstart','click'].forEach(function(ev){
     window.addEventListener(ev, function(){ lastAct = Date.now(); $('#hoursPill').classList.remove('paused'); }, {passive:true, capture:true});
@@ -151,7 +155,7 @@ function t(k){ return (L[lang] && L[lang][k]) || L.en[k] || k; }
   run('getGradeData', BOOT.grade).then(function(d){
     D = d;
     if (d.preview) $('#previewBar').classList.remove('hidden');
-    renderHero(); renderObjectives(); renderToc();
+    renderHero(); renderToc();
     var first = d.topics.filter(function(x){ return x.id === d.lastTopic; })[0] || d.topics[0];
     if (first) openTopic(first.id, true); else $('#lesson').innerHTML = '<div class="empty">No topics have been published for Grade ' + esc(BOOT.grade) + ' yet. Check back soon.</div>';
     renderHours();
@@ -186,11 +190,11 @@ function renderHero(){
   var bests = tp.map(function(x){ return D.scores[x.id]; }).filter(Boolean).map(function(s){ return s.best; });
   var avg = bests.length ? Math.round(bests.reduce(function(a,b){ return a + b; }, 0) / bests.length) : null;
   var met = bests.filter(function(b){ return b >= D.target; }).length;
-  var name = (BOOT.user.name || '').split(' ')[0] || 'there';
+  var name = BOOT.user.name || 'there';
   var resume = D.topics.filter(function(x){ return x.id === D.lastTopic; })[0];
   $('#hero').innerHTML =
     '<div class="hero-main"><h1>Welcome back, ' + esc(name) + '</h1>' +
-    '<p>Your goal in this Booster course is <b>' + D.target + '% or higher</b> on every assessment. Your hours keep adding up every time you sign in with this account.</p>' +
+    '<p>Grade ' + esc(BOOT.grade) + ' follows <i>Cambridge Lower Secondary Computing ' + esc(D.stage) + '</i>. Your goal is <b>' + D.target + '% or higher</b> on every assessment. Your learning hours keep adding up every time you sign in with this account.</p>' +
     (resume ? '<button class="btn" onclick="openTopic(\'' + esc(resume.id) + '\', true)">' + esc(t('continue')) + ': ' + esc(resume.title) + '</button>'
             : (tp[0] ? '<button class="btn" onclick="openTopic(\'' + esc(tp[0].id) + '\')">' + esc(t('start')) + '</button>' : '')) +
     '</div>' +
@@ -204,23 +208,19 @@ function renderHero(){
         '<div class="target-cap"><span>0%</span><span>Target ' + D.target + '%</span></div></div>' +
     '</div>';
 }
-function renderObjectives(){
-  var o = D.objectives;
-  $('#objectives').innerHTML = '<summary>Grade ' + esc(BOOT.grade) + ' lesson objectives</summary>' +
-    (o.length ? '<ol>' + o.map(function(x){ return '<li>' + mdInline(x) + '</li>'; }).join('') + '</ol>'
-              : '<p class="muted small" style="margin:10px 0 0">Your teacher will add the lesson objectives for this grade soon.</p>');
-}
-
 /* ------------------------------ topic list ------------------------------ */
 function renderToc(){
+  var lastUnit = null;
   $('#toc').innerHTML = '<h3>Topics</h3>' + (D.topics.length ? D.topics.map(function(x, i){
+    var head = '';
+    if (x.unit !== lastUnit){ lastUnit = x.unit; head = '<div class="toc-unit">' + esc(x.unit ? 'Unit ' + x.unit : 'More topics') + '</div>'; }
     var st = status(x.id), sc = D.scores[x.id];
     var meta = [];
     if (D.preview && !x.published) meta.push('Draft (hidden from students)');
     if (sc) meta.push(t('best') + ': ' + sc.best + '%');
     else if (st === 'Completed') meta.push(t('completed'));
     else if (st) meta.push('In progress');
-    return '<button class="toc-item ' + (cur && cur.id === x.id ? 'on ' : '') + (st === 'Completed' ? 'done' : st ? 'prog' : '') + '" onclick="openTopic(\'' + esc(x.id) + '\')">' +
+    return head + '<button class="toc-item ' + (cur && cur.id === x.id ? 'on ' : '') + (st === 'Completed' ? 'done' : st ? 'prog' : '') + '" onclick="openTopic(\'' + esc(x.id) + '\')">' +
       '<span class="toc-num">' + (st === 'Completed' ? '✓' : i + 1) + '</span>' +
       '<span>' + esc(x.title) + (meta.length ? '<span class="toc-meta">' + esc(meta.join(' · ')) + '</span>' : '') + '</span></button>';
   }).join('') : '<p class="muted small" style="margin:8px">No topics yet.</p>');
@@ -233,6 +233,7 @@ function openTopic(id, resume){
   if (!cur) return;
   renderToc(); renderLesson();
   if (lang === 'vi') translateCurrent();
+  run('openedTopic', id).catch(function(){});
   var p = D.progress[id];
   if (resume && p && p.section && SECTIONS.indexOf(p.section) > 0){
     var el = document.querySelector('[data-sec="' + p.section + '"]');
@@ -243,6 +244,10 @@ function openTopic(id, resume){
   if (!p){ D.progress[id] = {status:'In progress', section:''}; renderToc(); run('saveProgress', id, 'In progress', '').catch(function(){}); }
 }
 
+function objHtml(text){
+  var items = String(text || '').split('\n').map(function(l){ return l.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, '').trim(); }).filter(String);
+  return items.length ? '<ul>' + items.map(function(l){ return '<li>' + mdInline(l) + '</li>'; }).join('') + '</ul>' : '<p class="muted">Objectives coming soon.</p>';
+}
 function renderLesson(){
   var x = cur, i = D.topics.indexOf(x), sc = D.scores[x.id], st = status(x.id);
   var h = '';
@@ -252,8 +257,8 @@ function renderLesson(){
   if (sc) h += '<span class="tag ' + (sc.best >= D.target ? 'ok' : 'warn') + '">' + esc(t('best')) + ' ' + sc.best + '%</span>';
   if (lang === 'vi') h += '<div class="mt-note">Bản dịch tự động. Mã lệnh (code) và bài kiểm tra luôn bằng tiếng Anh.</div>';
   h += '</div>';
-  if (String(x.objectives || '').trim())
-    h += '<div class="obj" data-sec="objectives"><div class="lbl">' + esc(t('objectives')) + '</div><div class="prose" data-tr="obj">' + md(x.objectives) + '</div></div>';
+  if (x.bookRef) h += '<div class="bookref">Book: ' + esc(x.bookRef) + '</div>';
+  h += '<div class="obj" data-sec="objectives"><div class="lbl">' + esc(t('objectives')) + '</div><div class="prose" data-tr="obj">' + objHtml(x.objectives) + '</div></div>';
   if (x.videoUrl) h += '<section data-sec="video">' + videoHtml(x.videoUrl) + '</section>';
   if (String(x.explanation || '').trim()) h += '<section data-sec="explanation" class="prose" data-tr="expl">' + md(x.explanation) + '</section>';
   if (String(x.syntax || '').trim())
@@ -323,12 +328,12 @@ function setLang(l){
 function translateCurrent(){
   var x = cur;
   if (TR[x.id]){ applyTranslation(); return; }
-  var parts = { title: esc(x.title), obj: md(x.objectives), expl: md(x.explanation), note: md(x.note) };
+  var parts = { title: esc(x.title), obj: objHtml(x.objectives), expl: md(x.explanation), note: md(x.note) };
   var keys = Object.keys(parts).filter(function(k){ return String(parts[k]).trim(); });
   var html = keys.map(function(k){ return '<div id="tr-' + k + '">' + parts[k] + '</div>'; }).join('');
   var title = document.querySelector('[data-tr="title"]');
   if (title) title.insertAdjacentHTML('afterend', '<div class="muted small" id="trLoading"><span class="spinner" style="width:14px;height:14px;border-width:2px"></span> Đang dịch…</div>');
-  run('translateToVi', html).then(function(out){
+  run('translateToVi', html, x.title).then(function(out){
     var doc = new DOMParser().parseFromString('<body>' + out + '</body>', 'text/html');
     $$('script,iframe,object,embed,style', doc).forEach(function(n){ n.remove(); });
     TR[x.id] = {};

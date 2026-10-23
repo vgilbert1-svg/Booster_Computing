@@ -5,47 +5,112 @@
 <meta charset="utf-8">
 <?!= include('Styles') ?>
 <style>
-.home{max-width:980px;margin:0 auto;padding:40px 16px 60px}
+body{--accent:#1f4e79;--accent-soft:#e4edf6;--accent-ink:#173b5c}
+.home{max-width:760px;margin:0 auto;padding:40px 16px 60px}
 .home h1{font-size:2rem;margin-bottom:6px}
-.grades{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:26px 0}
-.gcard{border-radius:16px;padding:24px;color:#fff;text-decoration:none;display:block;position:relative;overflow:hidden;min-height:150px}
-.gcard .n{font:700 3rem var(--head);line-height:1}
-.gcard .l{font:600 1.05rem var(--head);margin-top:6px}
-.gcard .s{opacity:.85;font-size:.9rem;margin-top:4px}
-.gcard:after{content:"";position:absolute;right:-40px;bottom:-40px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.12)}
-.gcard:hover{filter:brightness(1.08)}
+.stages{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 26px}
+.stages span{border-radius:999px;padding:5px 12px;font:600 .82rem var(--head);color:#fff}
+.who-tabs{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:6px 0 4px}
+.who-tab{border:2px solid var(--line);background:#fff;border-radius:12px;padding:16px;text-align:left;cursor:pointer;font:500 .95rem var(--body);color:var(--ink)}
+.who-tab b{display:block;font:600 1.05rem var(--head);margin-bottom:2px}
+.who-tab.on{border-color:var(--accent);background:var(--accent-soft)}
+.status-card{border-left:5px solid var(--warn)}
+.status-card.denied{border-left-color:var(--bad)}
+.status-card.removed{border-left-color:#64748b}
 .notice{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:12px 16px;font-weight:600;margin-bottom:16px}
-@media (max-width:700px){ .grades{grid-template-columns:1fr} }
+.steps{margin:0;padding-left:1.2em;color:var(--muted);font-size:.95rem}
+.gchecks{display:flex;gap:18px;flex-wrap:wrap}
 </style>
 </head>
 <body>
 <div class="home">
   <div class="tiny muted" style="font-family:var(--head);letter-spacing:.08em;text-transform:uppercase"><?= school ?></div>
-  <h1>Booster Classes · Grades 6–8</h1>
-  <p class="muted">IGCSE-aligned booster lessons with videos, clear topic breakdowns and Vietnamese translation of lessons. Target: <b id="tgt">85</b>% or higher for every student.</p>
-  <div id="notice"></div>
-  <div class="grades">
-    <a class="gcard" style="background:#0f766e" id="g6"><div class="n">6</div><div class="l">Grade 6 Booster</div><div class="s">Open the Grade 6 page</div></a>
-    <a class="gcard" style="background:#4338ca" id="g7"><div class="n">7</div><div class="l">Grade 7 Booster</div><div class="s">Open the Grade 7 page</div></a>
-    <a class="gcard" style="background:#c2410c" id="g8"><div class="n">8</div><div class="l">Grade 8 Booster</div><div class="s">Open the Grade 8 page</div></a>
+  <h1>Booster Computing · Grades 6–8</h1>
+  <p class="muted" style="margin:0">Lessons follow the <i>Cambridge Lower Secondary Computing</i> books. Target: <b id="tgt">85</b>% or higher for every student.</p>
+  <div class="stages">
+    <span style="background:#0f766e">Grade 6 · Stage 7</span><span style="background:#4338ca">Grade 7 · Stage 8</span><span style="background:#c2410c">Grade 8 · Stage 9</span>
   </div>
-  <div class="card" id="who"></div>
+  <div id="notice"></div>
+  <div id="body"></div>
 </div>
 <?!= include('Lib') ?>
 <script>
 var BOOT = <?!= boot ?>;
-['6','7','8'].forEach(function(g){ $('#g' + g).href = BOOT.url + '?page=grade&grade=' + g; });
+var who = 'student';
 $('#tgt').textContent = BOOT.target;
 if (BOOT.notice) $('#notice').innerHTML = '<div class="notice">' + esc(BOOT.notice) + '</div>';
-var u = BOOT.user, w = $('#who');
-if (!u.email){
-  w.innerHTML = '<h3>Please sign in with your school Google account</h3><p class="muted">This site only works with the school account your teacher registered. Sign out of personal Gmail accounts, sign in with your school account, then reload this page.</p>';
-} else if (u.role === 'guest'){
-  w.innerHTML = '<h3>You are not registered yet</h3><p class="muted">You are signed in as <b>' + esc(u.email) + '</b>, but this account is not on a Booster class list. Ask your Booster teacher to register this exact email, then reload the page.</p>';
-} else if (u.role === 'student'){
-  w.innerHTML = '<h3>Hi ' + esc(u.name) + '</h3><p>You are registered in Grade ' + esc(u.grade) + '.</p><a class="btn" href="' + esc(BOOT.url) + '?page=grade&grade=' + esc(u.grade) + '">Go to my Grade ' + esc(u.grade) + ' page</a>';
-} else {
-  w.innerHTML = '<h3>Welcome, ' + esc(u.name) + '</h3><p class="muted">You are signed in as a ' + esc(u.role) + '. The grade cards above open a teacher preview.</p><a class="btn" href="' + esc(BOOT.url) + '?page=teacher">Open the teacher portal</a>';
+render(BOOT.user);
+
+function fmtDate(s){ return String(s || '').slice(0, 16); }
+function render(u){
+  var b = $('#body');
+  if (!u.email){
+    b.innerHTML = '<div class="card"><h3>Sign in with your school Google account</h3><p class="muted">This site only works with your school account' +
+      (BOOT.domain ? ' (<b>@' + esc(BOOT.domain) + '</b>)' : '') + '. Sign out of personal Gmail accounts in this browser, sign in with your school account, then reload this page.</p></div>';
+    return;
+  }
+  if (u.role === 'student'){ b.innerHTML = '<div class="card"><h3>You have access</h3><a class="btn" href="' + esc(BOOT.url) + '?page=grade&grade=' + esc(u.grade) + '">Go to my Grade ' + esc(u.grade) + ' page</a></div>'; return; }
+  if (u.role === 'teacher' || u.role === 'admin'){ b.innerHTML = '<div class="card"><h3>Welcome, ' + esc(u.name) + '</h3><a class="btn" href="' + esc(BOOT.url) + '?page=portal">Open the portal</a></div>'; return; }
+
+  var r = u.request, h = '';
+  if (r){
+    var what = r.type === 'teacher' ? 'teacher access for Grade ' + (r.grades || []).join(', ') : 'student access to Grade ' + r.grade;
+    if (r.status === 'Pending'){
+      h += '<div class="card status-card"><span class="tag warn">Waiting for approval</span><h3 style="margin-top:10px">Your request has been sent</h3>' +
+        '<p>You asked for <b>' + esc(what) + '</b> on ' + esc(fmtDate(r.on)) + '.</p>' +
+        '<p class="muted small">' + (r.type === 'teacher' ? 'The administrator will review it and grant your grade levels.' : 'Your Booster teacher will review it. You can close this page and come back later.') + '</p>' +
+        '<button class="btn ghost" onclick="location.reload()">Check again</button></div>';
+      b.innerHTML = h; return;
+    }
+    if (r.status === 'Removed'){
+      b.innerHTML = '<div class="card status-card removed"><span class="tag neutral">Access removed</span><h3 style="margin-top:10px">Your access has been removed</h3>' +
+        (r.note ? '<p><b>Note:</b> ' + esc(r.note) + '</p>' : '') + '<p class="muted">Please speak to ' + (r.type === 'teacher' ? 'the administrator' : 'your teacher') + ' if you think this is a mistake.</p></div>';
+      return;
+    }
+    if (r.status === 'Denied'){
+      h += '<div class="card status-card denied"><span class="tag bad">Request not approved</span><h3 style="margin-top:10px">Your request for ' + esc(what) + ' was not approved</h3>' +
+        (r.note ? '<p><b>Note:</b> ' + esc(r.note) + '</p>' : '') + '<p class="muted small">Check the details and send a new request below.</p></div>';
+    }
+  }
+  h += '<div class="card"><h3>Register</h3><p class="muted small" style="margin-top:0">Signed in as <b>' + esc(u.email) + '</b>. Choose who you are.</p>' +
+    '<div class="who-tabs"><button class="who-tab" data-w="student" onclick="setWho(\'student\')"><b>I am a student</b>A teacher approves your request.</button>' +
+    '<button class="who-tab" data-w="teacher" onclick="setWho(\'teacher\')"><b>I am a teacher</b>The administrator grants your grade levels.</button></div>' +
+    '<div id="form"></div></div>' +
+    '<div class="card"><h3 style="font-size:1rem">How access works</h3><ol class="steps"><li>Register here with your school account.</li>' +
+    '<li>Students are approved by a Booster teacher for their grade. Teachers are approved by the administrator.</li>' +
+    '<li>Once approved, reload this page and you will go straight to your grade page or the teacher portal.</li></ol></div>';
+  b.innerHTML = h;
+  setWho(r && r.type === 'teacher' ? 'teacher' : 'student');
+}
+function setWho(w){
+  who = w;
+  $$('.who-tab').forEach(function(t){ t.classList.toggle('on', t.dataset.w === w); });
+  var name = '<label for="f-name">Full name (as on the school register)</label><input type="text" id="f-name" value="' + esc(BOOT.user.name || '') + '">';
+  if (w === 'student'){
+    $('#form').innerHTML = name +
+      '<div class="row"><div><label for="f-grade">Grade</label><select id="f-grade" onchange="fillClasses()"><option value="">Choose…</option><option value="6">Grade 6</option><option value="7">Grade 7</option><option value="8">Grade 8</option></select></div>' +
+      '<div><label for="f-class">Class (if you know it)</label><select id="f-class"><option value="">Not sure</option></select></div></div>' +
+      '<label for="f-msg">Message to your teacher (optional)</label><input type="text" id="f-msg" maxlength="300" placeholder="e.g. I am in 7B with Ms Lan">' +
+      '<button class="btn" style="margin-top:16px" id="f-send" onclick="send()">Send request</button>';
+  } else {
+    $('#form').innerHTML = name +
+      '<label>Grade levels you teach</label><div class="gchecks">' + ['6','7','8'].map(function(g){ return '<label class="check"><input type="checkbox" class="f-g" value="' + g + '"> Grade ' + g + '</label>'; }).join('') + '</div>' +
+      '<label for="f-msg">Message to the administrator (optional)</label><input type="text" id="f-msg" maxlength="300" placeholder="e.g. I teach Computing to 6A and 6B">' +
+      '<button class="btn" style="margin-top:16px" id="f-send" onclick="send()">Send request</button>';
+  }
+}
+function fillClasses(){
+  var g = $('#f-grade').value;
+  $('#f-class').innerHTML = '<option value="">Not sure</option>' + BOOT.classes.filter(function(c){ return c.grade === g; })
+    .map(function(c){ return '<option value="' + esc(c.id) + '">' + esc(c.name) + '</option>'; }).join('');
+}
+function send(){
+  var form = { type: who, name: $('#f-name').value, message: $('#f-msg').value };
+  if (who === 'student'){ form.grade = $('#f-grade').value; form.classId = $('#f-class').value; }
+  else form.grades = $$('.f-g').filter(function(c){ return c.checked; }).map(function(c){ return c.value; });
+  var b = $('#f-send'); b.disabled = true; b.textContent = 'Sending…';
+  run('submitRegistration', form).then(function(u){ BOOT.user = u; toast('Request sent.', 'ok'); render(u); window.scrollTo(0, 0); })
+    .catch(function(e){ toast(e, 'bad'); b.disabled = false; b.textContent = 'Send request'; });
 }
 </script>
 </body>

@@ -26,7 +26,7 @@
   function blocked(e, what){
     e.preventDefault(); e.stopPropagation();
     if (typeof toast === 'function') toast(what + ' is disabled on this page.', 'bad');
-    report('blocked_' + what.toLowerCase().replace(/\W+/g, '_'), G.assessing ? 'during assessment' : '');
+    report('integrity.blocked_' + what.toLowerCase().replace(/\W+/g, '_'), G.assessing ? 'during assessment' : '');
     return false;
   }
 
@@ -49,13 +49,13 @@
       return blocked(e, 'That shortcut');
     }
   }, true);
-  window.addEventListener('beforeprint', function(){ report('print_attempt'); });
+  window.addEventListener('beforeprint', function(){ report('integrity.print_attempt'); });
 
   /* ---- leaving the tab / window ---- */
   function leave(how){
     if (G.away) return;
     G.away = true; G.awaySince = Date.now();
-    report('left_page', how + (G.assessing ? ' (during assessment)' : ''));
+    report('integrity.left_page', how + (G.assessing ? ' (during assessment)' : ''));
     if (G.assessing){
       G.quizSwitches++;
       if (typeof G.onQuizSwitch === 'function') G.onQuizSwitch(G.quizSwitches);
@@ -64,7 +64,7 @@
   function back(){
     if (!G.away) return;
     G.away = false;
-    report('tab_return', Math.round((Date.now() - G.awaySince) / 1000) + 's away');
+    report('integrity.return', Math.round((Date.now() - G.awaySince) / 1000) + 's away');
   }
   document.addEventListener('visibilitychange', function(){ document.hidden ? leave('tab hidden') : back(); });
   // Window blur only counts during assessments: lesson videos legitimately take focus.
