@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Booster Classes · Grades 6–8</title>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#15202b;--muted:#5d6876;--bg:#f5f6f2;--line:#e2e5e9}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.6 'Source Sans 3',system-ui,sans-serif}
+  .wrap{max-width:980px;margin:0 auto;padding:48px 16px 60px}
+  .kicker{font:600 .8rem 'Lexend',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  h1{font:700 2.1rem/1.2 'Lexend',sans-serif;margin:6px 0 8px}
+  p{color:var(--muted);margin:0 0 8px}
+  .grades{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:28px 0 18px}
+  .g{display:block;border-radius:16px;padding:26px;color:#fff;text-decoration:none;position:relative;overflow:hidden;min-height:160px}
+  .g:hover{filter:brightness(1.08)}
+  .g .n{font:700 3.2rem/1 'Lexend',sans-serif}
+  .g .l{font:600 1.1rem 'Lexend',sans-serif;margin-top:8px}
+  .g .s{opacity:.85;font-size:.92rem}
+  .g:after{content:"";position:absolute;right:-40px;bottom:-40px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.12)}
+  .teacher{display:inline-block;background:#1f4e79;color:#fff;text-decoration:none;font:600 1rem 'Lexend',sans-serif;padding:12px 20px;border-radius:10px}
+  .note{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-top:26px;font-size:.95rem;color:var(--muted)}
+  .warn{background:#fdf1e1;color:#8a4b06;border-radius:12px;padding:16px 18px;margin-top:20px;font-weight:600}
+  @media(max-width:700px){.grades{grid-template-columns:1fr}h1{font-size:1.6rem}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">Booster Programme</div>
+  <h1>Booster Classes · Grades 6–8</h1>
+  <p>IGCSE-aligned lessons with videos, clear topic breakdowns and Vietnamese translation. Target: 85% or higher.</p>
+
+  <div class="grades">
+    <a class="g" style="background:#0f766e" data-page="grade" data-grade="6"><div class="n">6</div><div class="l">Grade 6 Booster</div><div class="s">Open the Grade 6 page</div></a>
+    <a class="g" style="background:#4338ca" data-page="grade" data-grade="7"><div class="n">7</div><div class="l">Grade 7 Booster</div><div class="s">Open the Grade 7 page</div></a>
+    <a class="g" style="background:#c2410c" data-page="grade" data-grade="8"><div class="n">8</div><div class="l">Grade 8 Booster</div><div class="s">Open the Grade 8 page</div></a>
+  </div>
+  <a class="teacher" data-page="teacher">Teacher portal</a>
+
+  <div id="setupWarn" class="warn" hidden>
+    The app link is not set yet. Edit <code>index.html</code> and paste your Apps Script web app URL (ending in <code>/exec</code>) into <code>APP_URL</code>.
+  </div>
+  <div class="note">Sign in with your <b>school Google account</b>. Students are taken to their own registered grade.</div>
+</div>
+
+<script>
+  /* ▼▼ Paste your Apps Script web app URL here (Deploy › Manage deployments › Web app URL) ▼▼ */
+  var APP_URL = 'PASTE_YOUR_WEB_APP_URL_HERE';
+  /* ▲▲ ------------------------------------------------------------------------------------ ▲▲ */
+
+  var ready = /^https:\/\/script\.google\.com\/.+\/exec$/.test(APP_URL.trim());
+  document.querySelectorAll('[data-page]').forEach(function (a) {
+    if (!ready) { a.href = '#'; a.addEventListener('click', function (e) { e.preventDefault(); }); return; }
+    var q = a.dataset.page === 'teacher' ? '?page=teacher' : '?page=grade&grade=' + a.dataset.grade;
+    a.href = APP_URL.trim() + q;
+  });
+  if (!ready) document.getElementById('setupWarn').hidden = false;
+</script>
+</body>
+</html>
