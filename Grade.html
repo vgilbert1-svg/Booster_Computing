@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en" translate="no">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="google" content="notranslate">
+<?!= include('Styles') ?>
+<style>
+.preview-bar{background:#1d2733;color:#fff;font-size:.9rem;padding:8px 0}
+.preview-bar a{color:#fff;font-weight:600}
+.lang{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--soft)}
+.lang button{border:0;background:transparent;font:600 .85rem var(--head);padding:7px 12px;cursor:pointer;color:var(--muted)}
+.lang button.on{background:var(--accent);color:#fff}
+body.assessing .lang{display:none}
+#hoursPill.paused{opacity:.55}
+#hoursPill svg{width:15px;height:15px}
+
+.hero{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;margin:22px 0 16px}
+.hero-main{background:var(--accent);color:#fff;border-radius:var(--r);padding:24px 26px;position:relative;overflow:hidden}
+.hero-main h1{color:#fff;margin-bottom:6px}
+.hero-main p{margin:0 0 16px;opacity:.9}
+.hero-main .btn{background:#fff;color:var(--accent-ink)}
+.hero-main:after{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.08)}
+.hero-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.hero-stats .card{padding:14px 16px}
+.target-bar{position:relative;height:10px;background:var(--soft);border-radius:6px;margin-top:10px}
+.target-bar .fill{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:var(--accent)}
+.target-bar .mark{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink)}
+.target-cap{display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted);margin-top:4px}
+
+.objectives summary{cursor:pointer;font:600 1rem var(--head);list-style:none;display:flex;align-items:center;gap:8px}
+.objectives summary::-webkit-details-marker{display:none}
+.objectives summary:before{content:"›";display:inline-block;transition:transform .15s;font-size:1.3rem;line-height:1;color:var(--accent)}
+.objectives[open] summary:before{transform:rotate(90deg)}
+.objectives ol{margin:12px 0 0;padding-left:1.4em}
+
+.layout{display:grid;grid-template-columns:290px 1fr;gap:20px;align-items:start;margin:16px 0 60px}
+.toc{position:sticky;top:80px;max-height:calc(100vh - 100px);overflow:auto;padding:12px}
+.toc h3{font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:6px 8px 10px}
+.toc-item{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;border:0;background:transparent;padding:9px 10px;border-radius:9px;cursor:pointer;font:500 .95rem var(--body);color:var(--ink)}
+.toc-item:hover{background:var(--soft)}
+.toc-item.on{background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
+.toc-num{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font:600 .78rem var(--head);background:var(--soft);color:var(--muted);border:1px solid var(--line)}
+.toc-item.done .toc-num{background:var(--ok);color:#fff;border-color:var(--ok)}
+.toc-item.prog .toc-num{border-color:var(--accent);color:var(--accent)}
+.toc-meta{display:block;font-size:.76rem;color:var(--muted);font-weight:400}
+
+.lesson{padding:28px 32px;min-height:420px}
+.crumb{font:600 .78rem var(--head);text-transform:uppercase;letter-spacing:.06em;color:var(--accent)}
+.lesson-head h2{font-size:1.75rem;margin:4px 0 8px}
+.mt-note{font-size:.82rem;color:var(--muted);background:var(--soft);border-radius:8px;padding:6px 10px;margin:8px 0 14px;display:inline-block}
+.obj{border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:12px 16px;margin:16px 0}
+.obj .lbl{font:600 .8rem var(--head);text-transform:uppercase;letter-spacing:.05em;color:var(--accent-ink);margin-bottom:4px}
+.obj p:last-child,.obj ul:last-child{margin-bottom:0}
+.res-row{display:flex;gap:10px;flex-wrap:wrap;margin:20px 0}
+.lesson-actions{border-top:1px solid var(--line);margin-top:26px;padding-top:20px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.lesson-actions .en-only{font-size:.82rem;color:var(--muted);width:100%}
+.lesson-nav{display:flex;justify-content:space-between;gap:10px;margin-top:22px}
+
+/* assessment overlay */
+.quiz{position:fixed;inset:0;background:var(--bg);z-index:50;overflow:auto}
+.quiz-inner{max-width:820px;margin:0 auto;padding:22px 16px 90px}
+.quiz-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.quiz-kicker{font:700 .78rem var(--head);letter-spacing:.08em;color:var(--bad)}
+.rules{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--bad);border-radius:10px;padding:12px 16px;font-size:.93rem;margin:14px 0 20px}
+.q{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:14px}
+.q .qn{font:600 .8rem var(--head);color:var(--muted);margin-bottom:6px}
+.q .qtext p:last-child{margin-bottom:8px}
+.opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0;cursor:pointer;font-weight:500}
+.opt:hover{border-color:var(--accent)}
+.opt input{margin-top:5px;accent-color:var(--accent);width:17px;height:17px}
+.opt.sel{border-color:var(--accent);background:var(--accent-soft)}
+.opt .letter{font:700 .85rem var(--head);color:var(--muted);min-width:18px}
+.en-warn{color:var(--bad);font-size:.82rem;margin-top:6px}
+.quiz-foot{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:12px 16px}
+.quiz-foot .in{max-width:820px;margin:0 auto;display:flex;align-items:center;gap:12px}
+.switch-warn{background:var(--bad);color:#fff;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-weight:600}
+.result{text-align:center;padding:30px 20px}
+.result .big{font:700 3.4rem var(--head);line-height:1}
+.result-list{text-align:left;margin-top:20px}
+.result-list li{margin:6px 0}
+
+@media (max-width:900px){
+  .hero{grid-template-columns:1fr}
+  .layout{grid-template-columns:1fr}
+  .toc{position:static;max-height:none}
+  .lesson{padding:20px 18px}
+}
+</style>
+</head>
+<body class="g<?= grade ?>">
+<header class="topbar"><div class="wrap">
+  <div class="brand">
+    <span class="badge-grade">Grade <?= grade ?></span>
+    <div><div style="font-size:1.05rem">Booster Classes</div><div class="tiny muted"><?= school ?></div></div>
+  </div>
+  <div class="spacer"></div>
+  <span class="pill" id="hoursPill" title="Total learning time on your account. Counting pauses when you are inactive or on another tab.">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+    <b id="hours">–</b>
+  </span>
+  <div class="lang" role="group" aria-label="Lesson language">
+    <button type="button" data-lang="en" class="on">English</button>
+    <button type="button" data-lang="vi">Tiếng Việt</button>
+  </div>
+  <span class="pill" id="who"></span>
+</div></header>
+<div id="previewBar" class="preview-bar hidden"><div class="wrap">Teacher preview: hours, progress and scores are not recorded for your account. <a id="portalLink" href="#">Back to teacher portal</a></div></div>
+
+<main class="wrap">
+  <section class="hero" id="hero"><div class="loading"><span class="spinner"></span> Loading your lessons…</div></section>
+  <details class="card objectives" id="objectives"></details>
+  <div class="layout">
+    <aside class="card toc" id="toc" aria-label="Topics"></aside>
+    <article class="card lesson" id="lesson"></article>
+  </div>
+</main>
+
+<div id="quiz" class="quiz hidden" translate="no" lang="en"></div>
+
+<?!= include('Lib') ?>
+<? if (isStudent) { ?><?!= include('Guard') ?><? } ?>
+<script>
+var BOOT = <?!= boot ?>;
+var D = null, cur = null, lang = 'en', sess = null, lastAct = Date.now(), TR = {};
+var SECTIONS = ['objectives','video','explanation','syntax','example','note','assessment'];
+var furthest = {}, furthestDirty = false, observer = null;
+
+var L = {
+  en: { syntax:'Syntax', example:'Example', note:'Note', tryit:'Try it Yourself »', complete:'Mark topic as complete', completed:'Completed',
+        resource:'Open Hodder Boost resource', file:'Open lesson file', objectives:'In this topic you will', topic:'Topic',
+        quiz:'Take the assessment', quizNote:'Assessments are in English only.', best:'Best score', prev:'‹ Previous', next:'Next ›',
+        continue:'Continue learning', start:'Start learning' },
+  vi: { syntax:'Cú pháp (Syntax)', example:'Ví dụ (Example)', note:'Lưu ý', tryit:'Tự thử (Try it Yourself) »', complete:'Đánh dấu đã học xong',
+        completed:'Đã hoàn thành', resource:'Mở tài liệu Hodder Boost', file:'Mở tệp bài học', objectives:'Trong chủ đề này, em sẽ',
+        topic:'Chủ đề', quiz:'Làm bài kiểm tra (Take the assessment)', quizNote:'Bài kiểm tra chỉ bằng tiếng Anh. Assessments are in English only.',
+        best:'Điểm cao nhất', prev:'‹ Bài trước', next:'Bài tiếp ›', continue:'Học tiếp', start:'Bắt đầu học' }
+};
+function t(k){ return (L[lang] && L[lang][k]) || L.en[k] || k; }
+
+/* ------------------------------ start ------------------------------ */
+(function init(){
+  if (window.Guard) Guard.enable(BOOT.grade);
+  $('#who').textContent = BOOT.user.name || BOOT.user.email || 'Guest';
+  $('#portalLink').href = BOOT.url + '?page=teacher';
+  $$('.lang button').forEach(function(b){ b.onclick = function(){ setLang(b.dataset.lang); }; });
+  ['mousemove','keydown','scroll','touchstart','click'].forEach(function(ev){
+    window.addEventListener(ev, function(){ lastAct = Date.now(); $('#hoursPill').classList.remove('paused'); }, {passive:true, capture:true});
+  });
+
+  run('getGradeData', BOOT.grade).then(function(d){
+    D = d;
+    if (d.preview) $('#previewBar').classList.remove('hidden');
+    renderHero(); renderObjectives(); renderToc();
+    var first = d.topics.filter(function(x){ return x.id === d.lastTopic; })[0] || d.topics[0];
+    if (first) openTopic(first.id, true); else $('#lesson').innerHTML = '<div class="empty">No topics have been published for Grade ' + esc(BOOT.grade) + ' yet. Check back soon.</div>';
+    renderHours();
+    return run('startSession', BOOT.grade, first ? first.id : '');
+  }).then(function(s){
+    sess = s; if (s && s.id) setInterval(beat, 60000);
+  }).catch(function(e){
+    $('#hero').innerHTML = '<div class="card" style="grid-column:1/-1"><h3>Could not load this page</h3><p class="muted">' + esc(e) + '</p></div>';
+  });
+})();
+
+/* ------------------------------ hours ------------------------------ */
+function renderHours(){ $('#hours').textContent = fmtMinutes(D ? D.minutes : 0); }
+function isActive(){
+  if (document.hidden) return false;
+  var a = document.activeElement;
+  return Date.now() - lastAct < 180000 || (a && a.tagName === 'IFRAME') || (window.Guard && Guard.assessing);
+}
+function beat(){
+  if (!isActive()){ $('#hoursPill').classList.add('paused'); return; }
+  run('heartbeat', sess, cur ? cur.id : '').then(function(r){
+    if (!r.ok) return run('startSession', BOOT.grade, cur ? cur.id : '').then(function(s){ sess = s; D.minutes = s.minutes; renderHours(); });
+    if (r.added){ D.minutes++; renderHours(); }
+  }).catch(function(){});
+  if (furthestDirty && cur) saveSection();
+}
+
+/* ------------------------------ hero & objectives ------------------------------ */
+function status(id){ return (D.progress[id] || {}).status || ''; }
+function renderHero(){
+  var tp = D.topics, done = tp.filter(function(x){ return status(x.id) === 'Completed'; }).length;
+  var bests = tp.map(function(x){ return D.scores[x.id]; }).filter(Boolean).map(function(s){ return s.best; });
+  var avg = bests.length ? Math.round(bests.reduce(function(a,b){ return a + b; }, 0) / bests.length) : null;
+  var met = bests.filter(function(b){ return b >= D.target; }).length;
+  var name = (BOOT.user.name || '').split(' ')[0] || 'there';
+  var resume = D.topics.filter(function(x){ return x.id === D.lastTopic; })[0];
+  $('#hero').innerHTML =
+    '<div class="hero-main"><h1>Welcome back, ' + esc(name) + '</h1>' +
+    '<p>Your goal in this Booster course is <b>' + D.target + '% or higher</b> on every assessment. Your hours keep adding up every time you sign in with this account.</p>' +
+    (resume ? '<button class="btn" onclick="openTopic(\'' + esc(resume.id) + '\', true)">' + esc(t('continue')) + ': ' + esc(resume.title) + '</button>'
+            : (tp[0] ? '<button class="btn" onclick="openTopic(\'' + esc(tp[0].id) + '\')">' + esc(t('start')) + '</button>' : '')) +
+    '</div>' +
+    '<div class="hero-stats">' +
+      '<div class="card stat"><div class="k">Topics completed</div><div class="v">' + done + ' <span class="muted" style="font-size:1rem">/ ' + tp.length + '</span></div></div>' +
+      '<div class="card stat"><div class="k">Assessments at ' + D.target + '%+</div><div class="v">' + met + ' <span class="muted" style="font-size:1rem">/ ' + bests.length + ' taken</span></div></div>' +
+      '<div class="card stat" style="grid-column:1/-1"><div class="k">Average best score</div>' +
+        '<div class="v">' + (avg === null ? '–' : avg + '%') + '</div>' +
+        '<div class="target-bar"><div class="fill" style="width:' + (avg || 0) + '%;background:' + (avg === null ? 'var(--line)' : avg >= D.target ? 'var(--ok)' : 'var(--accent)') + '"></div>' +
+        '<div class="mark" style="left:' + D.target + '%"></div></div>' +
+        '<div class="target-cap"><span>0%</span><span>Target ' + D.target + '%</span></div></div>' +
+    '</div>';
+}
+function renderObjectives(){
+  var o = D.objectives;
+  $('#objectives').innerHTML = '<summary>Grade ' + esc(BOOT.grade) + ' lesson objectives</summary>' +
+    (o.length ? '<ol>' + o.map(function(x){ return '<li>' + mdInline(x) + '</li>'; }).join('') + '</ol>'
+              : '<p class="muted small" style="margin:10px 0 0">Your teacher will add the lesson objectives for this grade soon.</p>');
+}
+
+/* ------------------------------ topic list ------------------------------ */
+function renderToc(){
+  $('#toc').innerHTML = '<h3>Topics</h3>' + (D.topics.length ? D.topics.map(function(x, i){
+    var st = status(x.id), sc = D.scores[x.id];
+    var meta = [];
+    if (D.preview && !x.published) meta.push('Draft (hidden from students)');
+    if (sc) meta.push(t('best') + ': ' + sc.best + '%');
+    else if (st === 'Completed') meta.push(t('completed'));
+    else if (st) meta.push('In progress');
+    return '<button class="toc-item ' + (cur && cur.id === x.id ? 'on ' : '') + (st === 'Completed' ? 'done' : st ? 'prog' : '') + '" onclick="openTopic(\'' + esc(x.id) + '\')">' +
+      '<span class="toc-num">' + (st === 'Completed' ? '✓' : i + 1) + '</span>' +
+      '<span>' + esc(x.title) + (meta.length ? '<span class="toc-meta">' + esc(meta.join(' · ')) + '</span>' : '') + '</span></button>';
+  }).join('') : '<p class="muted small" style="margin:8px">No topics yet.</p>');
+}
+
+/* ------------------------------ lesson ------------------------------ */
+function openTopic(id, resume){
+  if (cur && furthestDirty) saveSection();
+  cur = D.topics.filter(function(x){ return x.id === id; })[0];
+  if (!cur) return;
+  renderToc(); renderLesson();
+  if (lang === 'vi') translateCurrent();
+  var p = D.progress[id];
+  if (resume && p && p.section && SECTIONS.indexOf(p.section) > 0){
+    var el = document.querySelector('[data-sec="' + p.section + '"]');
+    if (el){ setTimeout(function(){ el.scrollIntoView({behavior:'smooth', block:'start'}); }, 200); toast('Continuing where you left off.'); }
+  } else {
+    $('#lesson').scrollIntoView({behavior:'smooth', block:'start'});
+  }
+  if (!p){ D.progress[id] = {status:'In progress', section:''}; renderToc(); run('saveProgress', id, 'In progress', '').catch(function(){}); }
+}
+
+function renderLesson(){
+  var x = cur, i = D.topics.indexOf(x), sc = D.scores[x.id], st = status(x.id);
+  var h = '';
+  h += '<div class="lesson-head"><div class="crumb">' + esc(t('topic')) + ' ' + (i + 1) + ' · Grade ' + esc(BOOT.grade) + '</div>';
+  h += '<h2 data-tr="title">' + esc(x.title) + '</h2>';
+  if (st === 'Completed') h += '<span class="tag ok">' + esc(t('completed')) + '</span> ';
+  if (sc) h += '<span class="tag ' + (sc.best >= D.target ? 'ok' : 'warn') + '">' + esc(t('best')) + ' ' + sc.best + '%</span>';
+  if (lang === 'vi') h += '<div class="mt-note">Bản dịch tự động. Mã lệnh (code) và bài kiểm tra luôn bằng tiếng Anh.</div>';
+  h += '</div>';
+  if (String(x.objectives || '').trim())
+    h += '<div class="obj" data-sec="objectives"><div class="lbl">' + esc(t('objectives')) + '</div><div class="prose" data-tr="obj">' + md(x.objectives) + '</div></div>';
+  if (x.videoUrl) h += '<section data-sec="video">' + videoHtml(x.videoUrl) + '</section>';
+  if (String(x.explanation || '').trim()) h += '<section data-sec="explanation" class="prose" data-tr="expl">' + md(x.explanation) + '</section>';
+  if (String(x.syntax || '').trim())
+    h += '<section data-sec="syntax" class="w3-syntax"><div class="lbl">' + esc(t('syntax')) + '</div><pre class="code notranslate" translate="no">' + hl(x.syntax) + '</pre></section>';
+  if (String(x.example || '').trim())
+    h += '<section data-sec="example" class="w3-example"><h3>' + esc(t('example')) + '</h3><div class="w3-code"><pre class="code notranslate" translate="no">' + hl(x.example) + '</pre></div>' +
+         '<a class="btn w3" target="_blank" rel="noopener" href="' + esc(x.tryItUrl) + '">' + esc(t('tryit')) + '</a></section>';
+  if (String(x.note || '').trim())
+    h += '<section data-sec="note" class="w3-note"><strong>' + esc(t('note')) + ':</strong><div class="prose" data-tr="note">' + md(x.note) + '</div></section>';
+  if (x.resourceUrl || x.attachmentUrl){
+    h += '<div class="res-row">';
+    if (x.resourceUrl) h += '<a class="btn ghost" target="_blank" rel="noopener" href="' + esc(x.resourceUrl) + '">' + esc(t('resource')) + '</a>';
+    if (x.attachmentUrl) h += '<a class="btn ghost" target="_blank" rel="noopener" href="' + esc(x.attachmentUrl) + '">' + esc(t('file')) + '</a>';
+    h += '</div>';
+  }
+  h += '<section data-sec="assessment" class="lesson-actions">';
+  h += st === 'Completed' ? '<span class="tag ok" style="padding:8px 12px">✓ ' + esc(t('completed')) + '</span>'
+                          : '<button class="btn soft" onclick="markComplete()">' + esc(t('complete')) + '</button>';
+  if (x.questions) h += '<button class="btn" id="quizBtn" onclick="startQuiz()">' + esc(t('quiz')) + ' · ' + x.questions + ' Qs</button>' +
+                        '<div class="en-only">' + esc(t('quizNote')) + (sc ? ' Attempts so far: ' + sc.attempts + '.' : '') + '</div>';
+  h += '</section>';
+  var prev = D.topics[i - 1], next = D.topics[i + 1];
+  h += '<div class="lesson-nav">' +
+       (prev ? '<button class="btn ghost" onclick="openTopic(\'' + esc(prev.id) + '\')">' + esc(t('prev')) + '</button>' : '<span></span>') +
+       (next ? '<button class="btn ghost" onclick="openTopic(\'' + esc(next.id) + '\')">' + esc(t('next')) + '</button>' : '<span></span>') + '</div>';
+  $('#lesson').innerHTML = h;
+  watchSections();
+  if (lang === 'vi' && TR[x.id]) applyTranslation();
+}
+
+function watchSections(){
+  if (observer) observer.disconnect();
+  if (!('IntersectionObserver' in window)) return;
+  observer = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if (!en.isIntersecting || !cur) return;
+      var sec = en.target.dataset.sec, prev = furthest[cur.id];
+      if (!prev || SECTIONS.indexOf(sec) > SECTIONS.indexOf(prev)){ furthest[cur.id] = sec; furthestDirty = true; }
+    });
+  }, {threshold: 0.4});
+  $$('[data-sec]', $('#lesson')).forEach(function(el){ observer.observe(el); });
+}
+function saveSection(){
+  furthestDirty = false;
+  var sec = furthest[cur.id] || '';
+  var st = status(cur.id) === 'Completed' ? 'Completed' : 'In progress';
+  D.progress[cur.id] = {status: st, section: sec};
+  run('saveProgress', cur.id, st, sec).catch(function(){});
+}
+function markComplete(){
+  D.progress[cur.id] = {status:'Completed', section: furthest[cur.id] || ''};
+  run('saveProgress', cur.id, 'Completed', furthest[cur.id] || '').catch(function(e){ toast(e, 'bad'); });
+  renderHero(); renderToc(); renderLesson();
+  toast('Topic marked as complete.', 'ok');
+}
+
+/* ------------------------------ translation (lessons only) ------------------------------ */
+function setLang(l){
+  if (window.Guard && Guard.assessing) return;
+  lang = l;
+  $$('.lang button').forEach(function(b){ b.classList.toggle('on', b.dataset.lang === l); });
+  document.documentElement.lang = l;
+  if (!cur) return;
+  renderLesson(); renderHero();
+  if (l === 'vi') translateCurrent();
+}
+function translateCurrent(){
+  var x = cur;
+  if (TR[x.id]){ applyTranslation(); return; }
+  var parts = { title: esc(x.title), obj: md(x.objectives), expl: md(x.explanation), note: md(x.note) };
+  var keys = Object.keys(parts).filter(function(k){ return String(parts[k]).trim(); });
+  var html = keys.map(function(k){ return '<div id="tr-' + k + '">' + parts[k] + '</div>'; }).join('');
+  var title = document.querySelector('[data-tr="title"]');
+  if (title) title.insertAdjacentHTML('afterend', '<div class="muted small" id="trLoading"><span class="spinner" style="width:14px;height:14px;border-width:2px"></span> Đang dịch…</div>');
+  run('translateToVi', html).then(function(out){
+    var doc = new DOMParser().parseFromString('<body>' + out + '</body>', 'text/html');
+    $$('script,iframe,object,embed,style', doc).forEach(function(n){ n.remove(); });
+    TR[x.id] = {};
+    keys.forEach(function(k){ var el = doc.getElementById('tr-' + k); if (el) TR[x.id][k] = el.innerHTML; });
+    if (cur === x && lang === 'vi') applyTranslation();
+  }).catch(function(e){
+    toast('Translation is unavailable right now. Showing English.', 'bad');
+  }).then(function(){ var l = $('#trLoading'); if (l) l.remove(); });
+}
+function applyTranslation(){
+  var tr = TR[cur.id] || {};
+  $$('[data-tr]', $('#lesson')).forEach(function(el){
+    var k = el.dataset.tr; if (!tr[k]) return;
+    if (k === 'title') el.innerHTML = tr[k] + '<div class="muted" style="font-size:1rem;font-weight:500;margin-top:2px">' + esc(cur.title) + '</div>';
+    else el.innerHTML = tr[k];
+  });
+}
+
+/* ------------------------------ assessment (English only) ------------------------------ */
+var Q = null, QA = {};
+function startQuiz(){
+  if (lang !== 'en') setLang('en');
+  var b = $('#quizBtn'); if (b){ b.disabled = true; b.textContent = 'Loading…'; }
+  run('getQuiz', cur.id).then(function(q){
+    if (!q.questions.length){ toast('This topic has no assessment yet.'); renderLesson(); return; }
+    Q = q; QA = {};
+    if (window.Guard){ Guard.assessing = true; Guard.quizSwitches = 0; Guard.onQuizSwitch = onQuizSwitch; }
+    document.body.classList.add('assessing');
+    renderQuiz();
+    $('#quiz').classList.remove('hidden'); $('#quiz').scrollTop = 0;
+  }).catch(function(e){ toast(e, 'bad'); renderLesson(); });
+}
+function renderQuiz(){
+  var h = '<div class="quiz-inner"><div class="quiz-head"><div><div class="quiz-kicker">ASSESSMENT · ENGLISH ONLY</div><h2>' + esc(Q.title) + '</h2></div>' +
+          '<span class="pill" id="swc">Tab switches: 0 / ' + Q.maxSwitches + '</span></div>' +
+          '<div id="swWarn"></div>' +
+          '<div class="rules"><b>Before you start:</b> Answer every question in English. Translation, copy, paste and right-click are turned off. ' +
+          'Stay on this tab. Leaving it is recorded, and after ' + Q.maxSwitches + ' switches your answers are submitted automatically. ' +
+          'Once started, the assessment must be submitted. Target: <b>' + Q.target + '%</b>.</div>';
+  Q.questions.forEach(function(q, i){
+    h += '<div class="q" id="q-' + esc(q.id) + '"><div class="qn">Question ' + (i + 1) + ' of ' + Q.questions.length + '</div><div class="qtext prose">' + md(q.q) + '</div>';
+    if (q.type === 'mcq'){
+      q.options.forEach(function(o, j){
+        h += '<label class="opt"><input type="radio" name="' + esc(q.id) + '" value="' + esc(o.k) + '" onchange="answer(\'' + esc(q.id) + '\', this.value, this)">' +
+             '<span class="letter">' + 'ABCD'.charAt(j) + '.</span><span>' + mdInline(o.t) + '</span></label>';
+      });
+    } else {
+      h += '<input type="text" lang="en" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Type your answer in English" ' +
+           'oninput="typed(\'' + esc(q.id) + '\', this)"><div class="en-warn hidden">English only: Vietnamese letters and symbols are not accepted.</div>';
+    }
+    h += '</div>';
+  });
+  h += '</div><div class="quiz-foot"><div class="in"><span class="muted small" id="answered">0 of ' + Q.questions.length + ' answered</span><span class="spacer"></span>' +
+       '<button class="btn" id="submitBtn" onclick="submitQuiz(false)">Submit assessment</button></div></div>';
+  $('#quiz').innerHTML = h;
+}
+function answer(id, v, el){
+  QA[id] = v;
+  $$('.opt', $('#q-' + id)).forEach(function(o){ o.classList.toggle('sel', o.contains(el)); });
+  updateAnswered();
+}
+function typed(id, el){
+  var clean = el.value.replace(/[^\x20-\x7E]/g, '');
+  var warn = el.nextElementSibling;
+  if (clean !== el.value){ el.value = clean; warn.classList.remove('hidden'); } else warn.classList.add('hidden');
+  QA[id] = clean.trim();
+  updateAnswered();
+}
+function updateAnswered(){
+  var n = Q.questions.filter(function(q){ return QA[q.id]; }).length;
+  $('#answered').textContent = n + ' of ' + Q.questions.length + ' answered';
+}
+function onQuizSwitch(n){
+  $('#swc').textContent = 'Tab switches: ' + n + ' / ' + Q.maxSwitches;
+  if (n >= Q.maxSwitches){ toast('You left the assessment ' + n + ' times. Submitting your answers now.', 'bad'); submitQuiz(true); return; }
+  $('#swWarn').innerHTML = '<div class="switch-warn">Warning ' + n + ' of ' + Q.maxSwitches + ': you left this tab. It has been recorded. ' +
+                           (Q.maxSwitches - n) + ' more and your assessment will be submitted automatically.</div>';
+  $('#quiz').scrollTop = 0;
+}
+var submitting = false;
+function submitQuiz(auto){
+  if (submitting) return;
+  var missing = Q.questions.filter(function(q){ return !QA[q.id]; }).length;
+  if (!auto && missing && !confirm(missing + ' question(s) are unanswered. Submit anyway?')) return;
+  submitting = true;
+  var btn = $('#submitBtn'); if (btn){ btn.disabled = true; btn.textContent = 'Submitting…'; }
+  var switches = window.Guard ? Guard.quizSwitches : 0;
+  run('submitQuiz', Q.topicId, QA, switches, !!auto).then(function(r){
+    if (window.Guard){ Guard.assessing = false; Guard.onQuizSwitch = null; }
+    document.body.classList.remove('assessing');
+    if (!D.preview){
+      var sc = D.scores[Q.topicId] || (D.scores[Q.topicId] = {best:0, attempts:0, last:0});
+      sc.attempts++; sc.last = r.percent; sc.best = Math.max(sc.best, r.percent);
+      if (r.met) D.progress[Q.topicId] = {status:'Completed', section:'assessment'};
+    }
+    showResult(r, auto);
+  }).catch(function(e){
+    toast('Could not submit: ' + e + '. Please try again.', 'bad');
+    if (btn){ btn.disabled = false; btn.textContent = 'Submit assessment'; }
+  }).then(function(){ submitting = false; });
+}
+function showResult(r, auto){
+  var qmap = {}; Q.questions.forEach(function(q, i){ qmap[q.id] = i; });
+  var list = r.results.slice().sort(function(a, b){ return (qmap[a.q] || 0) - (qmap[b.q] || 0); }).map(function(x){
+    var q = Q.questions[qmap[x.q]]; if (!q) return '';
+    return '<li>' + (x.ok ? '<span class="tag ok">Correct</span> ' : '<span class="tag bad">Review</span> ') + esc(String(q.q).replace(/```[\s\S]*?```/g, '[code]').slice(0, 140)) + '</li>';
+  }).join('');
+  $('#quiz').innerHTML = '<div class="quiz-inner"><div class="card result">' +
+    (auto ? '<div class="tag bad" style="margin-bottom:12px">Submitted automatically after leaving the tab</div>' : '') +
+    '<div class="muted">Your score</div><div class="big" style="color:' + (r.met ? 'var(--ok)' : 'var(--warn)') + '">' + r.percent + '%</div>' +
+    '<div class="muted">' + r.score + ' of ' + r.total + ' correct · target ' + r.target + '%</div>' +
+    '<div class="target-bar" style="max-width:420px;margin:16px auto 0"><div class="fill" style="width:' + r.percent + '%;background:' + (r.met ? 'var(--ok)' : 'var(--accent)') + '"></div><div class="mark" style="left:' + r.target + '%"></div></div>' +
+    '<h3 style="margin-top:22px">' + (r.met ? 'Excellent — you reached the ' + r.target + '% target!' : 'Not yet at ' + r.target + '%. Review the topic and try again.') + '</h3>' +
+    (D.preview ? '<p class="muted small">Teacher preview — this attempt was not saved.</p>' : '') +
+    '<ol class="result-list">' + list + '</ol>' +
+    '<div style="margin-top:20px"><button class="btn" onclick="closeQuiz()">Back to the lesson</button></div></div></div>';
+  $('#quiz').scrollTop = 0;
+}
+function closeQuiz(){
+  $('#quiz').classList.add('hidden'); $('#quiz').innerHTML = ''; Q = null;
+  renderHero(); renderToc(); renderLesson();
+}
+</script>
+</body>
+</html>

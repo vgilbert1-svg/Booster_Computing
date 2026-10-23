@@ -1,0 +1,88 @@
+<script>
+/* =====================================================================
+   STUDENT INTEGRITY GUARD
+   - blocks right-click, copy, cut, paste, drag-drop, text selection,
+     common shortcuts (Ctrl/Cmd + C V X A S P U, F12, DevTools, print)
+   - detects leaving the tab / window and logs it to the Integrity tab
+   - during an assessment: counts switches, warns, auto-submits at limit
+   Browsers do not let a web page physically stop someone switching tabs;
+   this guard detects, logs, pauses hour-counting and enforces the limit.
+   ===================================================================== */
+(function(){
+  var G = window.Guard = {
+    grade: '', assessing: false, quizSwitches: 0, onQuizSwitch: null, away: false, awaySince: 0,
+    enable: function(grade){ this.grade = grade; document.body.classList.add('guarded'); }
+  };
+  var lastLog = {};
+  function report(event, detail){
+    var now = Date.now();
+    if (lastLog[event] && now - lastLog[event] < 4000) return;   // de-bounce
+    lastLog[event] = now;
+    try { google.script.run.logEvent(G.grade, event, detail || ''); } catch(e){}
+  }
+  G.report = report;
+
+  function isField(t){ return t && t.closest && t.closest('input,textarea,[contenteditable="true"]'); }
+  function blocked(e, what){
+    e.preventDefault(); e.stopPropagation();
+    if (typeof toast === 'function') toast(what + ' is disabled on this page.', 'bad');
+    report('blocked_' + what.toLowerCase().replace(/\W+/g, '_'), G.assessing ? 'during assessment' : '');
+    return false;
+  }
+
+  document.addEventListener('contextmenu', function(e){ return blocked(e, 'Right-click'); }, true);
+  document.addEventListener('copy',  function(e){ return blocked(e, 'Copy'); }, true);
+  document.addEventListener('cut',   function(e){ return blocked(e, 'Cut'); }, true);
+  document.addEventListener('paste', function(e){ return blocked(e, 'Paste'); }, true);
+  document.addEventListener('drop',  function(e){ return blocked(e, 'Drag and drop'); }, true);
+  document.addEventListener('dragstart', function(e){ e.preventDefault(); }, true);
+  document.addEventListener('selectstart', function(e){ if (!isField(e.target)) e.preventDefault(); }, true);
+  document.addEventListener('beforeinput', function(e){
+    if (e.inputType === 'insertFromPaste' || e.inputType === 'insertFromDrop') blocked(e, 'Paste');
+  }, true);
+
+  document.addEventListener('keydown', function(e){
+    var k = (e.key || '').toLowerCase(), mod = e.ctrlKey || e.metaKey;
+    if ((mod && ['c','v','x','a','s','p','u'].indexOf(k) >= 0) ||
+        k === 'f12' || (mod && e.shiftKey && ['i','j','c','k'].indexOf(k) >= 0) ||
+        (e.shiftKey && k === 'insert') || (mod && k === 'insert') || k === 'printscreen'){
+      return blocked(e, 'That shortcut');
+    }
+  }, true);
+  window.addEventListener('beforeprint', function(){ report('print_attempt'); });
+
+  /* ---- leaving the tab / window ---- */
+  function leave(how){
+    if (G.away) return;
+    G.away = true; G.awaySince = Date.now();
+    report('left_page', how + (G.assessing ? ' (during assessment)' : ''));
+    if (G.assessing){
+      G.quizSwitches++;
+      if (typeof G.onQuizSwitch === 'function') G.onQuizSwitch(G.quizSwitches);
+    }
+  }
+  function back(){
+    if (!G.away) return;
+    G.away = false;
+    report('tab_return', Math.round((Date.now() - G.awaySince) / 1000) + 's away');
+  }
+  document.addEventListener('visibilitychange', function(){ document.hidden ? leave('tab hidden') : back(); });
+  // Window blur only counts during assessments: lesson videos legitimately take focus.
+  window.addEventListener('blur', function(){
+    setTimeout(function(){
+      var a = document.activeElement;
+      if (G.assessing && !(a && a.tagName === 'IFRAME')) leave('window lost focus');
+    }, 150);
+  });
+  window.addEventListener('focus', back);
+
+  window.addEventListener('beforeunload', function(e){
+    if (G.assessing){ e.preventDefault(); e.returnValue = 'Your assessment is still open.'; return e.returnValue; }
+  });
+})();
+</script>
+<style>
+body.guarded{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+body.guarded input,body.guarded textarea{-webkit-user-select:text;user-select:text}
+body.guarded img,body.guarded video{-webkit-user-drag:none;pointer-events:auto}
+</style>

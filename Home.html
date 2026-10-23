@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<?!= include('Styles') ?>
+<style>
+.home{max-width:980px;margin:0 auto;padding:40px 16px 60px}
+.home h1{font-size:2rem;margin-bottom:6px}
+.grades{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:26px 0}
+.gcard{border-radius:16px;padding:24px;color:#fff;text-decoration:none;display:block;position:relative;overflow:hidden;min-height:150px}
+.gcard .n{font:700 3rem var(--head);line-height:1}
+.gcard .l{font:600 1.05rem var(--head);margin-top:6px}
+.gcard .s{opacity:.85;font-size:.9rem;margin-top:4px}
+.gcard:after{content:"";position:absolute;right:-40px;bottom:-40px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.12)}
+.gcard:hover{filter:brightness(1.08)}
+.notice{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:12px 16px;font-weight:600;margin-bottom:16px}
+@media (max-width:700px){ .grades{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="home">
+  <div class="tiny muted" style="font-family:var(--head);letter-spacing:.08em;text-transform:uppercase"><?= school ?></div>
+  <h1>Booster Classes · Grades 6–8</h1>
+  <p class="muted">IGCSE-aligned booster lessons with videos, clear topic breakdowns and Vietnamese translation of lessons. Target: <b id="tgt">85</b>% or higher for every student.</p>
+  <div id="notice"></div>
+  <div class="grades">
+    <a class="gcard" style="background:#0f766e" id="g6"><div class="n">6</div><div class="l">Grade 6 Booster</div><div class="s">Open the Grade 6 page</div></a>
+    <a class="gcard" style="background:#4338ca" id="g7"><div class="n">7</div><div class="l">Grade 7 Booster</div><div class="s">Open the Grade 7 page</div></a>
+    <a class="gcard" style="background:#c2410c" id="g8"><div class="n">8</div><div class="l">Grade 8 Booster</div><div class="s">Open the Grade 8 page</div></a>
+  </div>
+  <div class="card" id="who"></div>
+</div>
+<?!= include('Lib') ?>
+<script>
+var BOOT = <?!= boot ?>;
+['6','7','8'].forEach(function(g){ $('#g' + g).href = BOOT.url + '?page=grade&grade=' + g; });
+$('#tgt').textContent = BOOT.target;
+if (BOOT.notice) $('#notice').innerHTML = '<div class="notice">' + esc(BOOT.notice) + '</div>';
+var u = BOOT.user, w = $('#who');
+if (!u.email){
+  w.innerHTML = '<h3>Please sign in with your school Google account</h3><p class="muted">This site only works with the school account your teacher registered. Sign out of personal Gmail accounts, sign in with your school account, then reload this page.</p>';
+} else if (u.role === 'guest'){
+  w.innerHTML = '<h3>You are not registered yet</h3><p class="muted">You are signed in as <b>' + esc(u.email) + '</b>, but this account is not on a Booster class list. Ask your Booster teacher to register this exact email, then reload the page.</p>';
+} else if (u.role === 'student'){
+  w.innerHTML = '<h3>Hi ' + esc(u.name) + '</h3><p>You are registered in Grade ' + esc(u.grade) + '.</p><a class="btn" href="' + esc(BOOT.url) + '?page=grade&grade=' + esc(u.grade) + '">Go to my Grade ' + esc(u.grade) + ' page</a>';
+} else {
+  w.innerHTML = '<h3>Welcome, ' + esc(u.name) + '</h3><p class="muted">You are signed in as a ' + esc(u.role) + '. The grade cards above open a teacher preview.</p><a class="btn" href="' + esc(BOOT.url) + '?page=teacher">Open the teacher portal</a>';
+}
+</script>
+</body>
+</html>
