@@ -3,61 +3,60 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Booster Computing · Grades 6–8</title>
-<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<title>Booster Computing</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{--ink:#15202b;--muted:#5d6876;--bg:#f5f6f2;--line:#e2e5e9}
+  :root{--brand:#0B2D6B;--brand2:#1E4FA3;--accent:#E0262F;--ink:#14213D;--muted:#5B6782;--bg:#F4F6FB}
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.6 'Source Sans 3',system-ui,sans-serif}
-  .wrap{max-width:980px;margin:0 auto;padding:48px 16px 60px}
-  .kicker{font:600 .8rem 'Lexend',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-  h1{font:700 2.1rem/1.2 'Lexend',sans-serif;margin:6px 0 8px}
-  p{color:var(--muted);margin:0 0 8px}
-  .grades{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:28px 0 18px}
-  .g{display:block;border-radius:16px;padding:26px;color:#fff;text-decoration:none;position:relative;overflow:hidden;min-height:160px}
-  .g:hover{filter:brightness(1.08)}
-  .g .n{font:700 3.2rem/1 'Lexend',sans-serif}
-  .g .l{font:600 1.1rem 'Lexend',sans-serif;margin-top:8px}
-  .g .s{opacity:.85;font-size:.92rem}
-  .g:after{content:"";position:absolute;right:-40px;bottom:-40px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.12)}
-  .teacher{display:inline-block;background:#1f4e79;color:#fff;text-decoration:none;font:600 1rem 'Lexend',sans-serif;padding:12px 20px;border-radius:10px}
-  .note{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-top:26px;font-size:.95rem;color:var(--muted)}
-  .warn{background:#fdf1e1;color:#8a4b06;border-radius:12px;padding:16px 18px;margin-top:20px;font-weight:600}
-  @media(max-width:700px){.grades{grid-template-columns:1fr}h1{font-size:1.6rem}}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 'Be Vietnam Pro',system-ui,sans-serif}
+  .hero{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:40px 16px 90px;position:relative;overflow:hidden}
+  .hero:after{content:"";position:absolute;right:-80px;top:-80px;width:280px;height:280px;border-radius:50%;background:rgba(255,255,255,.07)}
+  .hero:before{content:"";position:absolute;left:-60px;bottom:-120px;width:240px;height:240px;border-radius:50%;background:var(--accent);opacity:.2}
+  .in{max-width:900px;margin:0 auto;position:relative;z-index:1}
+  .kick{font-weight:600;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;opacity:.8}
+  h1{font-size:2.2rem;line-height:1.2;margin:6px 0 6px}
+  .hero p{margin:0;opacity:.85}
+  .main{max-width:900px;margin:-60px auto 40px;padding:0 16px;position:relative;z-index:2}
+  .grades{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .g{display:block;background:#fff;border-radius:16px;padding:22px;text-decoration:none;color:var(--ink);box-shadow:0 6px 20px rgba(11,45,107,.10);border-top:5px solid var(--c);transition:transform .18s,box-shadow .18s}
+  .g:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(11,45,107,.16)}
+  .g .n{font-size:2.6rem;font-weight:700;line-height:1;color:var(--c)}
+  .g .l{font-weight:700;margin-top:8px}
+  .g .s{color:var(--muted);font-size:.88rem}
+  .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+  .btn{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:12px;transition:filter .15s}
+  .btn:hover{filter:brightness(1.08)}
+  .btn.alt{background:var(--brand)}
+  .note{margin-top:18px;color:var(--muted);font-size:.9rem}
+  @media(max-width:700px){.grades{grid-template-columns:1fr}h1{font-size:1.7rem}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="kicker">Booster Programme</div>
-  <h1>Booster Computing · Grades 6–8</h1>
-  <p>IGCSE-aligned lessons with videos, clear topic breakdowns and Vietnamese translation. Target: 85% or higher.</p>
+<div class="hero"><div class="in">
+  <div class="kick">Vinschool · Booster programme</div>
+  <h1>Booster Computing</h1>
+  <p>Grades 6–8 · Cambridge Lower Secondary Computing · Target 85%</p>
+</div></div>
 
+<div class="main">
   <div class="grades">
-    <a class="g" style="background:#0f766e" data-page="grade" data-grade="6"><div class="n">6</div><div class="l">Grade 6 Booster</div><div class="s">Open the Grade 6 page</div></a>
-    <a class="g" style="background:#4338ca" data-page="grade" data-grade="7"><div class="n">7</div><div class="l">Grade 7 Booster</div><div class="s">Open the Grade 7 page</div></a>
-    <a class="g" style="background:#c2410c" data-page="grade" data-grade="8"><div class="n">8</div><div class="l">Grade 8 Booster</div><div class="s">Open the Grade 8 page</div></a>
+    <a class="g" style="--c:#0E9F6E" data-page="grade" data-grade="6"><div class="n">6</div><div class="l">Grade 6</div><div class="s">Stage 7 lessons</div></a>
+    <a class="g" style="--c:#1E4FA3" data-page="grade" data-grade="7"><div class="n">7</div><div class="l">Grade 7</div><div class="s">Stage 8 lessons</div></a>
+    <a class="g" style="--c:#E0262F" data-page="grade" data-grade="8"><div class="n">8</div><div class="l">Grade 8</div><div class="s">Stage 9 lessons</div></a>
   </div>
-  <a class="teacher" data-page="home" style="background:#0f766e;margin-right:8px">Register / sign in</a>
-  <a class="teacher" data-page="teacher">Teacher &amp; admin portal</a>
-
-  <div id="setupWarn" class="warn" hidden>
-    The app link is not set yet. Edit <code>index.html</code> and paste your Apps Script web app URL (ending in <code>/exec</code>) into <code>APP_URL</code>.
+  <div class="btns">
+    <a class="btn" data-page="home">Register / Sign in</a>
+    <a class="btn alt" data-page="teacher">Teacher portal</a>
   </div>
-  <div class="note">Sign in with your <b>school Google account</b>. New here? Use the button below to register — your teacher or the administrator will approve your access.</div>
+  <div class="note">Use your school Google account. New users are approved by their teacher or the administrator.</div>
 </div>
 
 <script>
-  /* ▼▼ Paste your Apps Script web app URL here (Deploy › Manage deployments › Web app URL) ▼▼ */
   var APP_URL = 'https://script.google.com/a/vinschool.edu.vn/macros/s/AKfycbwFoXanByuIi-FoIM7T83jYIIeS5AK1vKVQdQ0EtW5Hy7g83qoThs3plDgAJD9HIF_n/exec';
-  /* ▲▲ ------------------------------------------------------------------------------------ ▲▲ */
-
-  var ready = /^https:\/\/script\.google\.com\/.+\/exec$/.test(APP_URL.trim());
   document.querySelectorAll('[data-page]').forEach(function (a) {
-    if (!ready) { a.href = '#'; a.addEventListener('click', function (e) { e.preventDefault(); }); return; }
-    var q = a.dataset.page === 'home' ? '' : a.dataset.page === 'teacher' ? '?page=portal' : '?page=grade&grade=' + a.dataset.grade;
-    a.href = APP_URL.trim() + q;
+    var p = a.dataset.page;
+    a.href = APP_URL + (p === 'home' ? '' : p === 'teacher' ? '?page=portal' : '?page=grade&grade=' + a.dataset.grade);
   });
-  if (!ready) document.getElementById('setupWarn').hidden = false;
 </script>
 </body>
 </html>
