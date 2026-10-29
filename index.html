@@ -17,7 +17,7 @@
   h1{font-size:2.2rem;line-height:1.2;margin:6px 0 6px}
   .hero p{margin:0;opacity:.85}
   .main{max-width:900px;margin:-60px auto 40px;padding:0 16px;position:relative;z-index:2}
-  .grades{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .grades{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
   .g{display:block;background:#fff;border-radius:16px;padding:22px;text-decoration:none;color:var(--ink);box-shadow:0 6px 20px rgba(11,45,107,.10);border-top:5px solid var(--c);transition:transform .18s,box-shadow .18s}
   .g:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(11,45,107,.16)}
   .g .n{font-size:2.6rem;font-weight:700;line-height:1;color:var(--c)}
@@ -35,7 +35,7 @@
 <div class="hero"><div class="in">
   <div class="kick">Vinschool · Booster programme</div>
   <h1>Booster Computing</h1>
-  <p>Grades 6–8 · Cambridge Lower Secondary Computing · Target 85%</p>
+  <p>Grades 6–8 · Cambridge Lower Secondary Computing · Grades 9–10 · Cambridge IGCSE Computer Science · Target 85%</p>
 </div></div>
 
 <div class="main">
@@ -43,6 +43,8 @@
     <a class="g" style="--c:#0E9F6E" data-page="grade" data-grade="6"><div class="n">6</div><div class="l">Grade 6</div><div class="s">Stage 7 lessons</div></a>
     <a class="g" style="--c:#1E4FA3" data-page="grade" data-grade="7"><div class="n">7</div><div class="l">Grade 7</div><div class="s">Stage 8 lessons</div></a>
     <a class="g" style="--c:#E0262F" data-page="grade" data-grade="8"><div class="n">8</div><div class="l">Grade 8</div><div class="s">Stage 9 lessons</div></a>
+    <a class="g" style="--c:#047857" data-page="grade" data-grade="9"><div class="n">9</div><div class="l">Grade 9</div><div class="s">IGCSE Year 1</div></a>
+    <a class="g" style="--c:#9D174D" data-page="grade" data-grade="10"><div class="n">10</div><div class="l">Grade 10</div><div class="s">IGCSE Year 2</div></a>
   </div>
   <div class="btns">
     <a class="btn" data-page="home">Register / Sign in</a>
@@ -60,4 +62,3 @@
 </script>
 </body>
 </html>
-
